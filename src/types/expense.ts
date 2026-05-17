@@ -1,0 +1,56 @@
+export type Category =
+  | "Housing"
+  | "Food"
+  | "Transport"
+  | "Health"
+  | "Shopping"
+  | "Entertainment"
+  | "Utilities"
+  | "Education"
+  | "Other";
+
+export const CATEGORIES: Category[] = [
+  "Housing",
+  "Food",
+  "Transport",
+  "Health",
+  "Shopping",
+  "Entertainment",
+  "Utilities",
+  "Education",
+  "Other",
+];
+
+export interface CategoryMeta {
+  color: string;      // hex — used for progress bars & borders
+  bg: string;         // tailwind bg class — pill / dot background
+  text: string;       // tailwind text class
+  light: string;      // tailwind bg class — subtle row tint
+  emoji: string;
+}
+
+export const CATEGORY_META: Record<Category, CategoryMeta> = {
+  Housing:       { color: "#4f46e5", bg: "bg-indigo-500",  text: "text-indigo-700",  light: "bg-indigo-50",  emoji: "🏠" },
+  Food:          { color: "#ea580c", bg: "bg-orange-500",  text: "text-orange-700",  light: "bg-orange-50",  emoji: "🍔" },
+  Transport:     { color: "#d97706", bg: "bg-amber-500",   text: "text-amber-700",   light: "bg-amber-50",   emoji: "🚗" },
+  Health:        { color: "#059669", bg: "bg-emerald-500", text: "text-emerald-700", light: "bg-emerald-50", emoji: "💊" },
+  Shopping:      { color: "#e11d48", bg: "bg-rose-500",    text: "text-rose-700",    light: "bg-rose-50",    emoji: "🛍️" },
+  Entertainment: { color: "#9333ea", bg: "bg-purple-500",  text: "text-purple-700",  light: "bg-purple-50",  emoji: "🎬" },
+  Utilities:     { color: "#475569", bg: "bg-slate-500",   text: "text-slate-700",   light: "bg-slate-50",   emoji: "💡" },
+  Education:     { color: "#0d9488", bg: "bg-teal-500",    text: "text-teal-700",    light: "bg-teal-50",    emoji: "📚" },
+  Other:         { color: "#71717a", bg: "bg-zinc-400",    text: "text-zinc-700",    light: "bg-zinc-50",    emoji: "📌" },
+};
+
+export interface Expense {
+  id: string;
+  description: string;
+  amount: number;
+  category: Category;
+  date: string; // YYYY-MM-DD
+}
+
+export type MonthKey = string; // "YYYY-MM"
+
+export interface ExpenseStore {
+  [month: MonthKey]: Expense[];
+}

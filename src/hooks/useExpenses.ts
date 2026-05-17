@@ -55,15 +55,18 @@ export function useExpenses(month: MonthKey, userId: string) {
       user_id: userId,
       id: crypto.randomUUID(),
     });
-  }, [userId]);
+    await fetchExpenses();
+  }, [userId, fetchExpenses]);
 
   const updateExpense = useCallback(async (id: string, updates: Omit<Expense, "id">) => {
     await supabase.from("expenses").update(updates).eq("id", id).eq("user_id", userId);
-  }, [userId]);
+    await fetchExpenses();
+  }, [userId, fetchExpenses]);
 
   const deleteExpense = useCallback(async (id: string) => {
     await supabase.from("expenses").delete().eq("id", id).eq("user_id", userId);
-  }, [userId]);
+    await fetchExpenses();
+  }, [userId, fetchExpenses]);
 
   return { expenses, loading, addExpense, updateExpense, deleteExpense };
 }

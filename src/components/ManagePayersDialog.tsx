@@ -76,19 +76,23 @@ export function ManagePayersDialog({ open, onClose, payers, onAdd, onDelete }: P
                 {p.name.slice(0, 2).toUpperCase()}
               </div>
               <span className="flex-1 font-medium text-sm">{p.name}</span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={`h-8 w-8 shrink-0 transition-colors ${
-                  confirmDeleteId === p.id
-                    ? "text-rose-600 bg-rose-50 hover:bg-rose-100"
-                    : "text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-                }`}
-                onClick={() => handleDelete(p.id)}
-                title={confirmDeleteId === p.id ? "Click again to confirm" : "Delete payer"}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
+              {p.is_owner ? (
+                <span className="text-xs px-2 py-1 rounded-md bg-slate-200 text-slate-500 font-medium shrink-0">you</span>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`h-8 w-8 shrink-0 transition-colors ${
+                    confirmDeleteId === p.id
+                      ? "text-rose-600 bg-rose-50 hover:bg-rose-100"
+                      : "text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                  }`}
+                  onClick={() => handleDelete(p.id)}
+                  title={confirmDeleteId === p.id ? "Click again to confirm" : "Delete payer"}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              )}
             </div>
           ))}
         </div>

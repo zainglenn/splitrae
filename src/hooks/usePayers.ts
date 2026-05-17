@@ -12,10 +12,32 @@ export function usePayers(userId: string) {
     setLoading(true);
     const { data } = await supabase
       .from("payers")
-      .select("id, name, color")
+      .select("id, name, color, is_owner")
       .eq("user_id", userId)
+      .order("is_owner", { ascending: false }) // owner always first
       .order("created_at");
-    setPayers((data as Payer[]) ?? []);
+    const list = (data as Payer[]) ?? [];
+
+    // Auto-create the owner payer on first use
+    if (!list.some((p) => p.is_owner)) {
+      await supabase.from("payers").insert({
+        id: crypto.randomUUID(),
+        user_id: userId,
+        name: "You",
+        color: "#6366f1",
+        is_owner: true,
+      });
+      // Re-fetch after creating
+      const { data: refreshed } = await supabase
+        .from("payers")
+        .select("id, name, color, is_owner")
+        .eq("user_id", userId)
+        .order("is_owner", { ascending: false })
+        .order("created_at");
+      setPayers((refreshed as Payer[]) ?? []);
+    } else {
+      setPayers(list);
+    }
     setLoading(false);
   }, [userId]);
 

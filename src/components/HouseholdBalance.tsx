@@ -96,7 +96,12 @@ export function HouseholdBalance({
 
               {/* Name + stats */}
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm text-slate-800">{payer.name}</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="font-semibold text-sm text-slate-800">{payer.name}</p>
+                  {payer.is_owner && (
+                    <span className="text-xs px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500 font-medium">you</span>
+                  )}
+                </div>
                 <div className="flex items-center gap-3 mt-0.5 text-xs text-slate-500">
                   <span>Owed {fmt.format(owedPerPayer)}</span>
                   <span>·</span>

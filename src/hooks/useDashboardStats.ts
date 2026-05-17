@@ -36,6 +36,24 @@ export function useDashboardStats(userId: string, year: number): DashboardStats 
 
   useEffect(() => { fetch(); }, [fetch]);
 
+  // Real-time: re-fetch whenever any expense changes for this user
+  useEffect(() => {
+    const channel = supabase
+      .channel(`dashboard:${userId}:${year}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "expenses",
+          filter: `user_id=eq.${userId}`,
+        },
+        () => fetch()
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [userId, year, fetch]);
+
   const monthStats: MonthStat[] = [];
   const monthMap: Record<string, { total: number; count: number }> = {};
   const categoryTotals: Partial<Record<Category, number>> = {};

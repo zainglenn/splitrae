@@ -38,7 +38,7 @@ export function StatsCards({ expenses }: Props) {
           </div>
         </CardHeader>
         <CardContent>
-          <p className="text-2xl font-bold tabular-nums">{fmt.format(total)}</p>
+          <p className="text-xl sm:text-2xl font-bold tabular-nums">{fmt.format(total)}</p>
           <p className="text-xs text-muted-foreground mt-1">this month</p>
         </CardContent>
       </Card>
@@ -51,10 +51,8 @@ export function StatsCards({ expenses }: Props) {
           </div>
         </CardHeader>
         <CardContent>
-          <p className="text-2xl font-bold tabular-nums">{fmt.format(yourHalf)}</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            {fmt.format(splitTotal)} shared ÷ 2
-          </p>
+          <p className="text-xl sm:text-2xl font-bold tabular-nums">{fmt.format(yourHalf)}</p>
+          <p className="text-xs text-muted-foreground mt-1 truncate">50% of shared</p>
         </CardContent>
       </Card>
 
@@ -66,10 +64,8 @@ export function StatsCards({ expenses }: Props) {
           </div>
         </CardHeader>
         <CardContent>
-          <p className="text-2xl font-bold">{expenses.length}</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            {expenses.length === 1 ? "expense" : "expenses"} recorded
-          </p>
+          <p className="text-xl sm:text-2xl font-bold">{expenses.length}</p>
+          <p className="text-xs text-muted-foreground mt-1">recorded</p>
         </CardContent>
       </Card>
 
@@ -83,14 +79,14 @@ export function StatsCards({ expenses }: Props) {
         <CardContent>
           {topCategory ? (
             <>
-              <p className="text-2xl font-bold flex items-center gap-2">
+              <p className="text-xl sm:text-2xl font-bold flex items-center gap-1.5">
                 <span>{CATEGORY_META[topCategory[0]].emoji}</span>
                 <span className="truncate">{topCategory[0]}</span>
               </p>
-              <p className="text-xs text-muted-foreground mt-1">{fmt.format(topCategory[1])} spent</p>
+              <p className="text-xs text-muted-foreground mt-1 truncate">{fmt.format(topCategory[1])}</p>
             </>
           ) : (
-            <p className="text-2xl font-bold text-muted-foreground">—</p>
+            <p className="text-xl sm:text-2xl font-bold text-muted-foreground">—</p>
           )}
         </CardContent>
       </Card>

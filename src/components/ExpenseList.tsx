@@ -103,59 +103,70 @@ export function ExpenseList({ expenses, onEdit, onDelete, filterCategory, onClea
   return (
     <div className="space-y-3">
       {/* Filters row */}
-      <div className="flex flex-wrap gap-2 items-center">
-        <Input
-          placeholder="Search transactions…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="h-9 w-48 text-sm"
-        />
-        <Select value={splitFilter} onValueChange={(v) => setSplitFilter(v as typeof splitFilter)}>
-          <SelectTrigger className="h-9 w-36 text-sm">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All expenses</SelectItem>
-            <SelectItem value="split">Split only</SelectItem>
-            <SelectItem value="personal">Personal only</SelectItem>
-          </SelectContent>
-        </Select>
-        {filterCategory && (
-          <button
-            onClick={onClearCategoryFilter}
-            className="flex items-center gap-1.5 h-9 px-3 rounded-md text-sm font-medium border transition-colors hover:bg-slate-50"
-            style={{
-              borderColor: CATEGORY_META[filterCategory].color + "60",
-              color: CATEGORY_META[filterCategory].color,
-              backgroundColor: CATEGORY_META[filterCategory].color + "10",
-            }}
-          >
-            {CATEGORY_META[filterCategory].emoji} {filterCategory}
-            <X className="h-3.5 w-3.5 opacity-60" />
-          </button>
+      <div className="space-y-2">
+        <div className="flex gap-2">
+          <Input
+            placeholder="Search…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="h-10 flex-1 text-base"
+          />
+          <Select value={splitFilter} onValueChange={(v) => setSplitFilter(v as typeof splitFilter)}>
+            <SelectTrigger className="h-10 w-32 shrink-0 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="split">Split</SelectItem>
+              <SelectItem value="personal">Personal</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {(filterCategory || search || splitFilter !== "all") && (
+          <div className="flex items-center gap-2 flex-wrap">
+            {filterCategory && (
+              <button
+                onClick={onClearCategoryFilter}
+                className="flex items-center gap-1.5 h-8 px-3 rounded-md text-sm font-medium border transition-colors"
+                style={{
+                  borderColor: CATEGORY_META[filterCategory].color + "60",
+                  color: CATEGORY_META[filterCategory].color,
+                  backgroundColor: CATEGORY_META[filterCategory].color + "10",
+                }}
+              >
+                {CATEGORY_META[filterCategory].emoji} {filterCategory}
+                <X className="h-3.5 w-3.5 opacity-60" />
+              </button>
+            )}
+            {(search || splitFilter !== "all") && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-muted-foreground"
+                onClick={() => { setSearch(""); setSplitFilter("all"); }}
+              >
+                Clear filters
+              </Button>
+            )}
+            <span className="ml-auto text-xs text-muted-foreground tabular-nums">
+              {filtered.length} of {expenses.length}
+            </span>
+          </div>
         )}
-        {(search || splitFilter !== "all") && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-9 text-muted-foreground"
-            onClick={() => { setSearch(""); setSplitFilter("all"); }}
-          >
-            Clear
-          </Button>
+        {!filterCategory && search === "" && splitFilter === "all" && (
+          <p className="text-xs text-muted-foreground text-right tabular-nums">
+            {filtered.length} transactions
+          </p>
         )}
-        <span className="ml-auto text-xs text-muted-foreground tabular-nums">
-          {filtered.length} of {expenses.length}
-        </span>
       </div>
 
-      {/* Table */}
-      <div className="rounded-xl border overflow-hidden">
+      {/* Table — scrollable on mobile */}
+      <div className="rounded-xl border overflow-hidden overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-slate-50 hover:bg-slate-50">
               <TableHead
-                className="w-[90px] cursor-pointer select-none"
+                className="w-[80px] cursor-pointer select-none"
                 onClick={() => toggleSort("date")}
               >
                 <div className="flex items-center gap-1">
@@ -171,7 +182,7 @@ export function ExpenseList({ expenses, onEdit, onDelete, filterCategory, onClea
                 </div>
               </TableHead>
               <TableHead
-                className="w-[130px] cursor-pointer select-none"
+                className="w-[130px] cursor-pointer select-none hidden sm:table-cell"
                 onClick={() => toggleSort("category")}
               >
                 <div className="flex items-center gap-1">
@@ -179,14 +190,14 @@ export function ExpenseList({ expenses, onEdit, onDelete, filterCategory, onClea
                 </div>
               </TableHead>
               <TableHead
-                className="w-[110px] text-right cursor-pointer select-none"
+                className="w-[100px] text-right cursor-pointer select-none"
                 onClick={() => toggleSort("amount")}
               >
                 <div className="flex items-center justify-end gap-1">
                   Amount <SortIcon col="amount" active={sortKey === "amount"} dir={sortDir} />
                 </div>
               </TableHead>
-              <TableHead className="w-[80px]" />
+              <TableHead className="w-[72px]" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -200,21 +211,30 @@ export function ExpenseList({ expenses, onEdit, onDelete, filterCategory, onClea
               filtered.map((expense) => {
                 const meta = CATEGORY_META[expense.category];
                 return (
-                  <TableRow key={expense.id} className="group">
-                    <TableCell className="text-xs text-slate-500 tabular-nums whitespace-nowrap">
+                  <TableRow key={expense.id}>
+                    <TableCell className="text-xs text-slate-500 tabular-nums whitespace-nowrap align-top pt-3">
                       {formatDate(expense.date)}
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="font-medium text-slate-800 truncate">{expense.description}</span>
-                        {expense.split && (
-                          <span className="shrink-0 text-xs font-medium px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-600">
-                            split
-                          </span>
-                        )}
+                    <TableCell className="align-top pt-3">
+                      <div className="flex flex-col gap-1 min-w-0">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="font-medium text-slate-800 truncate text-sm">{expense.description}</span>
+                          {expense.split && (
+                            <span className="shrink-0 text-xs font-medium px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-600">
+                              split
+                            </span>
+                          )}
+                        </div>
+                        {/* Category shown inline on mobile */}
+                        <span
+                          className="sm:hidden inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded-md w-fit"
+                          style={{ backgroundColor: meta.color + "18", color: meta.color }}
+                        >
+                          {meta.emoji} {expense.category}
+                        </span>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell align-top pt-3">
                       <span
                         className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md whitespace-nowrap"
                         style={{ backgroundColor: meta.color + "18", color: meta.color }}
@@ -222,28 +242,28 @@ export function ExpenseList({ expenses, onEdit, onDelete, filterCategory, onClea
                         {meta.emoji} {expense.category}
                       </span>
                     </TableCell>
-                    <TableCell className="text-right font-semibold tabular-nums text-slate-800 whitespace-nowrap">
+                    <TableCell className="text-right font-semibold tabular-nums text-slate-800 whitespace-nowrap align-top pt-3">
                       {fmt.format(expense.amount)}
                     </TableCell>
-                    <TableCell>
-                      <div className="flex gap-0.5 justify-end opacity-0 group-hover:opacity-100 sm:opacity-100 transition-opacity">
+                    <TableCell className="align-top pt-1">
+                      <div className="flex gap-0.5 justify-end">
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="h-8 w-8 text-slate-400 hover:text-primary hover:bg-accent"
+                          className="h-9 w-9 text-slate-400 hover:text-primary hover:bg-accent"
                           onClick={() => onEdit(expense)}
                           aria-label="Edit"
                         >
-                          <Pencil className="h-3.5 w-3.5" />
+                          <Pencil className="h-4 w-4" />
                         </Button>
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                          className="h-9 w-9 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
                           onClick={() => onDelete(expense.id)}
                           aria-label="Delete"
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>

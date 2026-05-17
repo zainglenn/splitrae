@@ -30,7 +30,7 @@ export function CategoryBreakdown({ expenses, onFilterCategory, activeCategory }
   );
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+    <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3">
       {sorted.map(([cat, { amount, count }]) => {
         const meta = CATEGORY_META[cat];
         const isActive = activeCategory === cat;
@@ -38,7 +38,7 @@ export function CategoryBreakdown({ expenses, onFilterCategory, activeCategory }
           <button
             key={cat}
             onClick={() => onFilterCategory?.(isActive ? null : cat)}
-            className="text-left rounded-xl p-3 border transition-all duration-150 hover:shadow-md active:scale-95 focus:outline-none"
+            className="text-left rounded-xl p-2.5 sm:p-3 border transition-all duration-150 hover:shadow-md active:scale-95 focus:outline-none"
             style={{
               backgroundColor: isActive ? meta.color + "18" : "white",
               borderColor: isActive ? meta.color + "60" : "transparent",
@@ -46,13 +46,13 @@ export function CategoryBreakdown({ expenses, onFilterCategory, activeCategory }
             }}
           >
             <div
-              className="w-9 h-9 rounded-lg flex items-center justify-center text-lg mb-2"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center text-base sm:text-lg mb-1.5 sm:mb-2"
               style={{ backgroundColor: meta.color + "20" }}
             >
               {meta.emoji}
             </div>
             <p className="text-xs font-medium text-slate-500 truncate">{cat}</p>
-            <p className="text-base font-bold tabular-nums text-slate-800 leading-tight mt-0.5">
+            <p className="text-sm sm:text-base font-bold tabular-nums text-slate-800 leading-tight mt-0.5">
               {fmt.format(amount)}
             </p>
             <p className="text-xs text-slate-400 mt-0.5">

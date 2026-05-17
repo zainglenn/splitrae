@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Expense, CATEGORY_META, Category } from "@/types/expense";
-import { TrendingUp, Receipt, Tag } from "lucide-react";
+import { TrendingUp, Receipt, Tag, Users } from "lucide-react";
 
 interface Props {
   expenses: Expense[];
@@ -16,6 +16,8 @@ const fmt = new Intl.NumberFormat("en-AE", {
 
 export function StatsCards({ expenses }: Props) {
   const total = expenses.reduce((s, e) => s + e.amount, 0);
+  const splitTotal = expenses.filter((e) => e.split).reduce((s, e) => s + e.amount, 0);
+  const yourHalf = splitTotal / 2;
 
   const topCategory = (() => {
     const totals: Partial<Record<Category, number>> = {};
@@ -27,7 +29,7 @@ export function StatsCards({ expenses }: Props) {
   })();
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
       <Card className="border-0 shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between pb-2 pt-5">
           <CardTitle className="text-sm font-medium text-muted-foreground">Total Spent</CardTitle>
@@ -38,6 +40,21 @@ export function StatsCards({ expenses }: Props) {
         <CardContent>
           <p className="text-2xl font-bold tabular-nums">{fmt.format(total)}</p>
           <p className="text-xs text-muted-foreground mt-1">this month</p>
+        </CardContent>
+      </Card>
+
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between pb-2 pt-5">
+          <CardTitle className="text-sm font-medium text-muted-foreground">Your Half</CardTitle>
+          <div className="h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center">
+            <Users className="h-4 w-4 text-blue-600" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-2xl font-bold tabular-nums">{fmt.format(yourHalf)}</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {fmt.format(splitTotal)} shared ÷ 2
+          </p>
         </CardContent>
       </Card>
 
@@ -68,7 +85,7 @@ export function StatsCards({ expenses }: Props) {
             <>
               <p className="text-2xl font-bold flex items-center gap-2">
                 <span>{CATEGORY_META[topCategory[0]].emoji}</span>
-                <span>{topCategory[0]}</span>
+                <span className="truncate">{topCategory[0]}</span>
               </p>
               <p className="text-xs text-muted-foreground mt-1">{fmt.format(topCategory[1])} spent</p>
             </>

@@ -16,7 +16,7 @@ export function useExpenses(month: MonthKey, userId: string) {
     setLoading(true);
     const { data } = await supabase
       .from("expenses")
-      .select("id, description, amount, category, date")
+      .select("id, description, amount, category, date, split")
       .eq("user_id", userId)
       .gte("date", from)
       .lte("date", to)

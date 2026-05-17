@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { CATEGORY_META, Category } from "@/types/expense";
-import { Loader2 } from "lucide-react";
+import { Loader2, Users } from "lucide-react";
 
 interface Props {
   userId: string;
@@ -25,7 +25,7 @@ function formatMonthLabel(key: string) {
 }
 
 export function DashboardView({ userId, year, onMonthClick }: Props) {
-  const { monthStats, categoryTotals, grandTotal, loading } = useDashboardStats(userId, year);
+  const { monthStats, categoryTotals, grandTotal, splitTotal, loading } = useDashboardStats(userId, year);
 
   if (loading) {
     return (
@@ -41,7 +41,7 @@ export function DashboardView({ userId, year, onMonthClick }: Props) {
   return (
     <div className="space-y-5">
       {/* Year total */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         <Card className="border-0 shadow-sm">
           <CardHeader className="pb-1 pt-5">
             <CardTitle className="text-sm font-medium text-muted-foreground">{year} Total Spent</CardTitle>
@@ -55,6 +55,17 @@ export function DashboardView({ userId, year, onMonthClick }: Props) {
         </Card>
 
         <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-1 pt-5 flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Your Half</CardTitle>
+            <Users className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold tabular-nums">{fmt.format(splitTotal / 2)}</p>
+            <p className="text-xs text-muted-foreground mt-1">{fmt.format(splitTotal)} shared ÷ 2</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-sm col-span-2 sm:col-span-1">
           <CardHeader className="pb-1 pt-5">
             <CardTitle className="text-sm font-medium text-muted-foreground">Monthly Average</CardTitle>
           </CardHeader>

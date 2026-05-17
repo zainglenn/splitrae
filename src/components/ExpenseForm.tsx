@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -33,6 +34,7 @@ export function ExpenseForm({ open, onClose, onSave, initialData, defaultDate }:
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState<Category>("Other");
   const [date, setDate] = useState(defaultDate);
+  const [split, setSplit] = useState(false);
 
   useEffect(() => {
     if (initialData) {
@@ -40,11 +42,13 @@ export function ExpenseForm({ open, onClose, onSave, initialData, defaultDate }:
       setAmount(String(initialData.amount));
       setCategory(initialData.category);
       setDate(initialData.date);
+      setSplit(initialData.split);
     } else {
       setDescription("");
       setAmount("");
       setCategory("Other");
       setDate(defaultDate);
+      setSplit(false);
     }
   }, [initialData, open, defaultDate]);
 
@@ -52,7 +56,7 @@ export function ExpenseForm({ open, onClose, onSave, initialData, defaultDate }:
     e.preventDefault();
     const parsed = parseFloat(amount);
     if (!description.trim() || isNaN(parsed) || parsed <= 0) return;
-    onSave({ description: description.trim(), amount: parsed, category, date });
+    onSave({ description: description.trim(), amount: parsed, category, date, split });
     onClose();
   }
 
@@ -138,6 +142,15 @@ export function ExpenseForm({ open, onClose, onSave, initialData, defaultDate }:
               onChange={(e) => setDate(e.target.value)}
               className="h-11 text-base"
             />
+          </div>
+
+          {/* Split */}
+          <div className="flex items-center justify-between py-1">
+            <div>
+              <Label className="text-sm font-medium text-slate-700">Split expense</Label>
+              <p className="text-xs text-muted-foreground mt-0.5">Shared 50/50 household expense</p>
+            </div>
+            <Switch checked={split} onCheckedChange={setSplit} />
           </div>
 
           <DialogFooter className="pt-2 gap-2">

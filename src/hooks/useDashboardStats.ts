@@ -14,6 +14,7 @@ export interface DashboardStats {
   monthStats: MonthStat[];
   categoryTotals: Partial<Record<Category, number>>;
   grandTotal: number;
+  splitTotal: number;
   loading: boolean;
 }
 
@@ -25,7 +26,7 @@ export function useDashboardStats(userId: string, year: number): DashboardStats 
     setLoading(true);
     const { data } = await supabase
       .from("expenses")
-      .select("id, description, amount, category, date")
+      .select("id, description, amount, category, date, split")
       .eq("user_id", userId)
       .gte("date", `${year}-01-01`)
       .lte("date", `${year}-12-31`);
@@ -39,6 +40,7 @@ export function useDashboardStats(userId: string, year: number): DashboardStats 
   const monthMap: Record<string, { total: number; count: number }> = {};
   const categoryTotals: Partial<Record<Category, number>> = {};
   let grandTotal = 0;
+  let splitTotal = 0;
 
   for (const e of expenses) {
     const month = e.date.slice(0, 7);
@@ -47,6 +49,7 @@ export function useDashboardStats(userId: string, year: number): DashboardStats 
     monthMap[month].count += 1;
     categoryTotals[e.category as Category] = (categoryTotals[e.category as Category] ?? 0) + e.amount;
     grandTotal += e.amount;
+    if (e.split) splitTotal += e.amount;
   }
 
   for (const [month, stat] of Object.entries(monthMap)) {
@@ -54,5 +57,5 @@ export function useDashboardStats(userId: string, year: number): DashboardStats 
   }
   monthStats.sort((a, b) => a.month.localeCompare(b.month));
 
-  return { monthStats, categoryTotals, grandTotal, loading };
+  return { monthStats, categoryTotals, grandTotal, splitTotal, loading };
 }

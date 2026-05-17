@@ -1,5 +1,8 @@
 export type Category =
   | "Housing"
+  | "Groceries"
+  | "Dine Out"
+  | "Takeaways"
   | "Food"
   | "Transport"
   | "Health"
@@ -11,6 +14,9 @@ export type Category =
 
 export const CATEGORIES: Category[] = [
   "Housing",
+  "Groceries",
+  "Dine Out",
+  "Takeaways",
   "Food",
   "Transport",
   "Health",
@@ -22,17 +28,20 @@ export const CATEGORIES: Category[] = [
 ];
 
 export interface CategoryMeta {
-  color: string;      // hex — used for progress bars & borders
-  bg: string;         // tailwind bg class — pill / dot background
-  text: string;       // tailwind text class
-  light: string;      // tailwind bg class — subtle row tint
+  color: string;
+  bg: string;
+  text: string;
+  light: string;
   emoji: string;
 }
 
 export const CATEGORY_META: Record<Category, CategoryMeta> = {
   Housing:       { color: "#4f46e5", bg: "bg-indigo-500",  text: "text-indigo-700",  light: "bg-indigo-50",  emoji: "🏠" },
-  Food:          { color: "#ea580c", bg: "bg-orange-500",  text: "text-orange-700",  light: "bg-orange-50",  emoji: "🍔" },
-  Transport:     { color: "#d97706", bg: "bg-amber-500",   text: "text-amber-700",   light: "bg-amber-50",   emoji: "🚗" },
+  Groceries:     { color: "#16a34a", bg: "bg-green-600",   text: "text-green-700",   light: "bg-green-50",   emoji: "🛒" },
+  "Dine Out":    { color: "#ea580c", bg: "bg-orange-500",  text: "text-orange-700",  light: "bg-orange-50",  emoji: "🍽️" },
+  Takeaways:     { color: "#f59e0b", bg: "bg-amber-500",   text: "text-amber-700",   light: "bg-amber-50",   emoji: "🛵" },
+  Food:          { color: "#dc2626", bg: "bg-red-500",     text: "text-red-700",     light: "bg-red-50",     emoji: "🍔" },
+  Transport:     { color: "#0284c7", bg: "bg-sky-500",     text: "text-sky-700",     light: "bg-sky-50",     emoji: "🚗" },
   Health:        { color: "#059669", bg: "bg-emerald-500", text: "text-emerald-700", light: "bg-emerald-50", emoji: "💊" },
   Shopping:      { color: "#e11d48", bg: "bg-rose-500",    text: "text-rose-700",    light: "bg-rose-50",    emoji: "🛍️" },
   Entertainment: { color: "#9333ea", bg: "bg-purple-500",  text: "text-purple-700",  light: "bg-purple-50",  emoji: "🎬" },
@@ -47,6 +56,7 @@ export interface Expense {
   amount: number;
   category: Category;
   date: string; // YYYY-MM-DD
+  split: boolean; // true = shared household expense (split 50/50)
 }
 
 export type MonthKey = string; // "YYYY-MM"

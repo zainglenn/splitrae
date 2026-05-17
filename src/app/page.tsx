@@ -12,8 +12,13 @@ import { ExpenseList } from "@/components/ExpenseList";
 import { CategoryBreakdown } from "@/components/CategoryBreakdown";
 import { AuthGate } from "@/components/AuthGate";
 import { AddUserDialog } from "@/components/AddUserDialog";
+import { ManagePayersDialog } from "@/components/ManagePayersDialog";
+import { HouseholdBalance } from "@/components/HouseholdBalance";
+import { RecordPaymentDialog } from "@/components/RecordPaymentDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useExpenses } from "@/hooks/useExpenses";
+import { usePayers } from "@/hooks/usePayers";
+import { usePayments } from "@/hooks/usePayments";
 import { Expense, Category } from "@/types/expense";
 import { Loader2 } from "lucide-react";
 
@@ -40,10 +45,16 @@ function TrackerApp({ userId }: { userId: string }) {
   const [formOpen, setFormOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [addUserOpen, setAddUserOpen] = useState(false);
+  const [managePayersOpen, setManagePayersOpen] = useState(false);
+  const [recordPaymentPayerId, setRecordPaymentPayerId] = useState<string | null>(null);
 
   const { expenses, loading, addExpense, updateExpense, deleteExpense } = useExpenses(currentMonth, userId);
+  const { payers, addPayer, deletePayer } = usePayers(userId);
+  const { payments, addPayment, deletePayment } = usePayments(currentMonth, userId);
   const total = useMemo(() => expenses.reduce((s, e) => s + e.amount, 0), [expenses]);
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<Category | null>(null);
+
+  const recordingPayer = payers.find((p) => p.id === recordPaymentPayerId) ?? null;
 
   const isCurrentMonth = currentMonth === toMonthKey(today);
   const defaultDate = isCurrentMonth ? toLocalDateString(today) : currentMonth + "-01";
@@ -71,6 +82,7 @@ function TrackerApp({ userId }: { userId: string }) {
         currentMonth={currentMonth}
         onMonthChange={handleMonthClick}
         onAddUser={() => setAddUserOpen(true)}
+        onManagePayers={() => setManagePayersOpen(true)}
       />
 
       <SidebarInset className="flex flex-col min-h-svh bg-muted/30">
@@ -95,6 +107,23 @@ function TrackerApp({ userId }: { userId: string }) {
           ) : (
             <>
               <StatsCards expenses={expenses} />
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="pb-2 pt-5">
+                  <CardTitle className="text-sm font-semibold">Household Balance</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <HouseholdBalance
+                    expenses={expenses}
+                    payers={payers}
+                    payments={payments}
+                    month={currentMonth}
+                    defaultDate={defaultDate}
+                    onRecordPayment={setRecordPaymentPayerId}
+                    onDeletePayment={deletePayment}
+                    onManagePayers={() => setManagePayersOpen(true)}
+                  />
+                </CardContent>
+              </Card>
               {expenses.length > 0 && (
                 <Card className="border-0 shadow-sm">
                   <CardHeader className="pb-2 pt-5">
@@ -136,6 +165,35 @@ function TrackerApp({ userId }: { userId: string }) {
         defaultDate={defaultDate}
       />
       <AddUserDialog open={addUserOpen} onClose={() => setAddUserOpen(false)} />
+      <ManagePayersDialog
+        open={managePayersOpen}
+        onClose={() => setManagePayersOpen(false)}
+        payers={payers}
+        onAdd={addPayer}
+        onDelete={deletePayer}
+      />
+      {recordingPayer && (
+        <RecordPaymentDialog
+          open={!!recordPaymentPayerId}
+          onClose={() => setRecordPaymentPayerId(null)}
+          payerName={recordingPayer.name}
+          payerColor={recordingPayer.color}
+          defaultDate={defaultDate}
+          remaining={
+            expenses.filter((e) => e.split).reduce((s, e) => s + e.amount, 0) / 2 -
+            payments.filter((p) => p.payer_id === recordingPayer.id).reduce((s, p) => s + p.amount, 0)
+          }
+          onSave={(data) =>
+            addPayment({
+              payer_id: recordingPayer.id,
+              amount: data.amount,
+              date: data.date,
+              note: data.note,
+              month: currentMonth,
+            })
+          }
+        />
+      )}
     </SidebarProvider>
   );
 }

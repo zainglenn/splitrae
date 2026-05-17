@@ -19,7 +19,7 @@ import {
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, CalendarRange, CalendarDays, LayoutDashboard, Wallet, LogOut, UserPlus } from "lucide-react";
+import { ChevronRight, CalendarRange, CalendarDays, LayoutDashboard, Wallet, LogOut, UserPlus, Users } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 function toMonthKey(date: Date) {
@@ -62,9 +62,10 @@ interface Props {
   currentMonth: string;
   onMonthChange: (month: string) => void;
   onAddUser: () => void;
+  onManagePayers: () => void;
 }
 
-export function AppSidebar({ view, onViewChange, currentMonth, onMonthChange, onAddUser }: Props) {
+export function AppSidebar({ view, onViewChange, currentMonth, onMonthChange, onAddUser, onManagePayers }: Props) {
   const { user, signOut } = useAuth();
   const { setOpenMobile } = useSidebar();
   const yearMonthMap = getYearMonthMap();
@@ -184,6 +185,12 @@ export function AppSidebar({ view, onViewChange, currentMonth, onMonthChange, on
         <SidebarGroup>
           <SidebarGroupLabel>Settings</SidebarGroupLabel>
           <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton onClick={onManagePayers} tooltip="Manage Payers">
+                <Users className="h-4 w-4 shrink-0" />
+                <span>Manage Payers</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton onClick={onAddUser} tooltip="Add User">
                 <UserPlus className="h-4 w-4 shrink-0" />

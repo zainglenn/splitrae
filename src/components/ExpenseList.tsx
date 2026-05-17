@@ -1,14 +1,36 @@
 "use client";
 
-import { Expense, CATEGORY_META } from "@/types/expense";
+import { useState, useMemo } from "react";
+import { Expense, CATEGORY_META, Category } from "@/types/expense";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, Receipt } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Pencil, Trash2, Receipt, ArrowUpDown, ArrowUp, ArrowDown, X } from "lucide-react";
 
 interface Props {
   expenses: Expense[];
   onEdit: (expense: Expense) => void;
   onDelete: (id: string) => void;
+  filterCategory?: Category | null;
+  onClearCategoryFilter?: () => void;
 }
+
+type SortKey = "date" | "description" | "amount" | "category";
+type SortDir = "asc" | "desc";
 
 const fmt = new Intl.NumberFormat("en-AE", {
   style: "currency",
@@ -20,11 +42,50 @@ function formatDate(iso: string) {
   return new Date(iso + "T00:00:00").toLocaleDateString("en-AE", {
     day: "numeric",
     month: "short",
-    year: "numeric",
   });
 }
 
-export function ExpenseList({ expenses, onEdit, onDelete }: Props) {
+function SortIcon({ col, active, dir }: { col: string; active: boolean; dir: SortDir }) {
+  if (!active) return <ArrowUpDown className="h-3.5 w-3.5 opacity-40" />;
+  return dir === "asc"
+    ? <ArrowUp className="h-3.5 w-3.5" />
+    : <ArrowDown className="h-3.5 w-3.5" />;
+}
+
+export function ExpenseList({ expenses, onEdit, onDelete, filterCategory, onClearCategoryFilter }: Props) {
+  const [search, setSearch] = useState("");
+  const [splitFilter, setSplitFilter] = useState<"all" | "split" | "personal">("all");
+  const [sortKey, setSortKey] = useState<SortKey>("date");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "date" ? "desc" : "asc");
+    }
+  }
+
+  const filtered = useMemo(() => {
+    let list = expenses;
+    if (filterCategory) list = list.filter((e) => e.category === filterCategory);
+    if (splitFilter === "split") list = list.filter((e) => e.split);
+    if (splitFilter === "personal") list = list.filter((e) => !e.split);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter((e) => e.description.toLowerCase().includes(q));
+    }
+    return [...list].sort((a, b) => {
+      let cmp = 0;
+      if (sortKey === "date") cmp = a.date.localeCompare(b.date);
+      else if (sortKey === "description") cmp = a.description.localeCompare(b.description);
+      else if (sortKey === "amount") cmp = a.amount - b.amount;
+      else if (sortKey === "category") cmp = a.category.localeCompare(b.category);
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+  }, [expenses, filterCategory, splitFilter, search, sortKey, sortDir]);
+
   if (expenses.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
@@ -39,75 +100,160 @@ export function ExpenseList({ expenses, onEdit, onDelete }: Props) {
     );
   }
 
-  const sorted = [...expenses].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
-
   return (
-    <ul className="space-y-2">
-      {sorted.map((expense) => {
-        const meta = CATEGORY_META[expense.category];
-        return (
-          <li
-            key={expense.id}
-            className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors group"
+    <div className="space-y-3">
+      {/* Filters row */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <Input
+          placeholder="Search transactions…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="h-9 w-48 text-sm"
+        />
+        <Select value={splitFilter} onValueChange={(v) => setSplitFilter(v as typeof splitFilter)}>
+          <SelectTrigger className="h-9 w-36 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All expenses</SelectItem>
+            <SelectItem value="split">Split only</SelectItem>
+            <SelectItem value="personal">Personal only</SelectItem>
+          </SelectContent>
+        </Select>
+        {filterCategory && (
+          <button
+            onClick={onClearCategoryFilter}
+            className="flex items-center gap-1.5 h-9 px-3 rounded-md text-sm font-medium border transition-colors hover:bg-slate-50"
+            style={{
+              borderColor: CATEGORY_META[filterCategory].color + "60",
+              color: CATEGORY_META[filterCategory].color,
+              backgroundColor: CATEGORY_META[filterCategory].color + "10",
+            }}
           >
-            {/* Category icon circle */}
-            <div
-              className="w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0"
-              style={{ backgroundColor: meta.color + "18" }}
-            >
-              {meta.emoji}
-            </div>
+            {CATEGORY_META[filterCategory].emoji} {filterCategory}
+            <X className="h-3.5 w-3.5 opacity-60" />
+          </button>
+        )}
+        {(search || splitFilter !== "all") && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-9 text-muted-foreground"
+            onClick={() => { setSearch(""); setSplitFilter("all"); }}
+          >
+            Clear
+          </Button>
+        )}
+        <span className="ml-auto text-xs text-muted-foreground tabular-nums">
+          {filtered.length} of {expenses.length}
+        </span>
+      </div>
 
-            {/* Description + meta */}
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-slate-800 truncate leading-tight">{expense.description}</p>
-              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                <span
-                  className="text-xs font-medium px-1.5 py-0.5 rounded-md"
-                  style={{ backgroundColor: meta.color + "18", color: meta.color }}
-                >
-                  {expense.category}
-                </span>
-                {expense.split && (
-                  <span className="text-xs font-medium px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-600">
-                    split
-                  </span>
-                )}
-                <span className="text-xs text-slate-400">{formatDate(expense.date)}</span>
-              </div>
-            </div>
-
-            {/* Amount */}
-            <span className="font-bold tabular-nums text-slate-800 shrink-0">
-              {fmt.format(expense.amount)}
-            </span>
-
-            {/* Actions — always visible on touch, fade-in on desktop hover */}
-            <div className="flex gap-0.5 shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-11 w-11 text-slate-400 hover:text-primary hover:bg-accent"
-                onClick={() => onEdit(expense)}
-                aria-label="Edit"
+      {/* Table */}
+      <div className="rounded-xl border overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-slate-50 hover:bg-slate-50">
+              <TableHead
+                className="w-[90px] cursor-pointer select-none"
+                onClick={() => toggleSort("date")}
               >
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-11 w-11 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-                onClick={() => onDelete(expense.id)}
-                aria-label="Delete"
+                <div className="flex items-center gap-1">
+                  Date <SortIcon col="date" active={sortKey === "date"} dir={sortDir} />
+                </div>
+              </TableHead>
+              <TableHead
+                className="cursor-pointer select-none"
+                onClick={() => toggleSort("description")}
               >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          </li>
-        );
-      })}
-    </ul>
+                <div className="flex items-center gap-1">
+                  Description <SortIcon col="description" active={sortKey === "description"} dir={sortDir} />
+                </div>
+              </TableHead>
+              <TableHead
+                className="w-[130px] cursor-pointer select-none"
+                onClick={() => toggleSort("category")}
+              >
+                <div className="flex items-center gap-1">
+                  Category <SortIcon col="category" active={sortKey === "category"} dir={sortDir} />
+                </div>
+              </TableHead>
+              <TableHead
+                className="w-[110px] text-right cursor-pointer select-none"
+                onClick={() => toggleSort("amount")}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  Amount <SortIcon col="amount" active={sortKey === "amount"} dir={sortDir} />
+                </div>
+              </TableHead>
+              <TableHead className="w-[80px]" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filtered.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-10 text-sm text-muted-foreground">
+                  No transactions match your filters.
+                </TableCell>
+              </TableRow>
+            ) : (
+              filtered.map((expense) => {
+                const meta = CATEGORY_META[expense.category];
+                return (
+                  <TableRow key={expense.id} className="group">
+                    <TableCell className="text-xs text-slate-500 tabular-nums whitespace-nowrap">
+                      {formatDate(expense.date)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="font-medium text-slate-800 truncate">{expense.description}</span>
+                        {expense.split && (
+                          <span className="shrink-0 text-xs font-medium px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-600">
+                            split
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span
+                        className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md whitespace-nowrap"
+                        style={{ backgroundColor: meta.color + "18", color: meta.color }}
+                      >
+                        {meta.emoji} {expense.category}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right font-semibold tabular-nums text-slate-800 whitespace-nowrap">
+                      {fmt.format(expense.amount)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-0.5 justify-end opacity-0 group-hover:opacity-100 sm:opacity-100 transition-opacity">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-slate-400 hover:text-primary hover:bg-accent"
+                          onClick={() => onEdit(expense)}
+                          aria-label="Edit"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                          onClick={() => onDelete(expense.id)}
+                          aria-label="Delete"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
   );
 }

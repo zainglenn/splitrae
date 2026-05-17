@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AppSidebar, AppView } from "@/components/AppSidebar";
@@ -14,7 +14,7 @@ import { AuthGate } from "@/components/AuthGate";
 import { AddUserDialog } from "@/components/AddUserDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useExpenses } from "@/hooks/useExpenses";
-import { Expense } from "@/types/expense";
+import { Expense, Category } from "@/types/expense";
 import { Loader2 } from "lucide-react";
 
 function toMonthKey(date: Date) {
@@ -43,10 +43,14 @@ function TrackerApp({ userId }: { userId: string }) {
 
   const { expenses, loading, addExpense, updateExpense, deleteExpense } = useExpenses(currentMonth, userId);
   const total = useMemo(() => expenses.reduce((s, e) => s + e.amount, 0), [expenses]);
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState<Category | null>(null);
 
   const isCurrentMonth = currentMonth === toMonthKey(today);
   const defaultDate = isCurrentMonth ? toLocalDateString(today) : currentMonth + "-01";
   const currentYear = Number(currentMonth.split("-")[0]);
+
+  // Clear category filter when month changes
+  useEffect(() => { setActiveCategoryFilter(null); }, [currentMonth]);
 
   function openAdd() { setEditingExpense(null); setFormOpen(true); }
   function openEdit(expense: Expense) { setEditingExpense(expense); setFormOpen(true); }
@@ -91,26 +95,34 @@ function TrackerApp({ userId }: { userId: string }) {
           ) : (
             <>
               <StatsCards expenses={expenses} />
-              <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-5">
-                {expenses.length > 0 && (
-                  <Card className="border-0 shadow-sm h-fit">
-                    <CardHeader className="pb-2 pt-5">
-                      <CardTitle className="text-sm font-semibold">By Category</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CategoryBreakdown expenses={expenses} />
-                    </CardContent>
-                  </Card>
-                )}
-                <Card className={`border-0 shadow-sm ${expenses.length === 0 ? "lg:col-span-2" : ""}`}>
+              {expenses.length > 0 && (
+                <Card className="border-0 shadow-sm">
                   <CardHeader className="pb-2 pt-5">
-                    <CardTitle className="text-sm font-semibold">Transactions</CardTitle>
+                    <CardTitle className="text-sm font-semibold">By Category</CardTitle>
                   </CardHeader>
-                  <CardContent className="pt-0">
-                    <ExpenseList expenses={expenses} onEdit={openEdit} onDelete={deleteExpense} />
+                  <CardContent>
+                    <CategoryBreakdown
+                      expenses={expenses}
+                      activeCategory={activeCategoryFilter}
+                      onFilterCategory={setActiveCategoryFilter}
+                    />
                   </CardContent>
                 </Card>
-              </div>
+              )}
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="pb-2 pt-5">
+                  <CardTitle className="text-sm font-semibold">Transactions</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <ExpenseList
+                    expenses={expenses}
+                    onEdit={openEdit}
+                    onDelete={deleteExpense}
+                    filterCategory={activeCategoryFilter}
+                    onClearCategoryFilter={() => setActiveCategoryFilter(null)}
+                  />
+                </CardContent>
+              </Card>
             </>
           )}
         </main>

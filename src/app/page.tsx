@@ -119,7 +119,9 @@ function TrackerApp({ userId }: { userId: string }) {
           view={view}
           monthLabel={formatMonthLabel(currentMonth)}
           year={currentYear}
+          currentMonth={currentMonth}
           onAddExpense={openAdd}
+          onBack={() => setView("history")}
           isGuest={isReadOnly}
         />
 

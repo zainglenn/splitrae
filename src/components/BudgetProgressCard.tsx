@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Settings2 } from "lucide-react";
+import { Settings2, Sparkles } from "lucide-react";
 import { Expense, Budget, Category, CATEGORY_META } from "@/types/expense";
 
 interface Props {
@@ -25,11 +25,11 @@ export function BudgetProgressCard({ expenses, budgets, onManageBudgets }: Props
         <CardContent className="py-4 flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-medium text-slate-700">No budgets set</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Track spending against monthly limits.</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Let AI analyse your history and set limits automatically.</p>
           </div>
-          <Button variant="outline" size="sm" className="gap-1.5 flex-shrink-0" onClick={onManageBudgets}>
-            <Settings2 className="h-3.5 w-3.5" />
-            Set Budgets
+          <Button size="sm" className="gap-1.5 flex-shrink-0 bg-violet-600 hover:bg-violet-700 text-white" onClick={onManageBudgets}>
+            <Sparkles className="h-3.5 w-3.5" />
+            Generate
           </Button>
         </CardContent>
       </Card>

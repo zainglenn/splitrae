@@ -19,8 +19,9 @@ import {
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, CalendarRange, CalendarDays, LayoutDashboard, Wallet, LogOut, UserPlus, Users, Sparkles } from "lucide-react";
+import { ChevronRight, CalendarRange, CalendarDays, LayoutDashboard, Wallet, LogOut, UserPlus, Users, Sparkles, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 
 function toMonthKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
@@ -54,20 +55,18 @@ function getYearMonthMap(): Record<string, string[]> {
   return map;
 }
 
-export type AppView = "dashboard" | "month";
+export type AppView = "dashboard" | "month" | "clean-data" | "add-user" | "manage-payers" | "manage-budgets" | "admin";
 
 interface Props {
   view: AppView;
   onViewChange: (view: AppView) => void;
   currentMonth: string;
   onMonthChange: (month: string) => void;
-  onAddUser: () => void;
-  onManagePayers: () => void;
-  onCleanData: () => void;
 }
 
-export function AppSidebar({ view, onViewChange, currentMonth, onMonthChange, onAddUser, onManagePayers, onCleanData }: Props) {
+export function AppSidebar({ view, onViewChange, currentMonth, onMonthChange }: Props) {
   const { user, signOut } = useAuth();
+  const { isAdmin } = useProfile(user?.id ?? null);
   const { setOpenMobile } = useSidebar();
   const yearMonthMap = getYearMonthMap();
   const years = Object.keys(yearMonthMap).sort((a, b) => Number(b) - Number(a));
@@ -95,6 +94,11 @@ export function AppSidebar({ view, onViewChange, currentMonth, onMonthChange, on
     setOpenMobile(false);
   }
 
+  function nav(v: AppView) {
+    onViewChange(v);
+    setOpenMobile(false);
+  }
+
   return (
     <Sidebar collapsible="icon">
       {/* Brand */}
@@ -119,11 +123,7 @@ export function AppSidebar({ view, onViewChange, currentMonth, onMonthChange, on
         <SidebarGroup>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton
-                isActive={view === "dashboard"}
-                onClick={selectDashboard}
-                tooltip="Dashboard"
-              >
+              <SidebarMenuButton isActive={view === "dashboard"} onClick={selectDashboard} tooltip="Dashboard">
                 <LayoutDashboard className="h-4 w-4 shrink-0" />
                 <span>Dashboard</span>
               </SidebarMenuButton>
@@ -187,25 +187,46 @@ export function AppSidebar({ view, onViewChange, currentMonth, onMonthChange, on
           <SidebarGroupLabel>Settings</SidebarGroupLabel>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={onManagePayers} tooltip="Manage Payers">
+              <SidebarMenuButton isActive={view === "manage-payers"} onClick={() => nav("manage-payers")} tooltip="Manage Payers">
                 <Users className="h-4 w-4 shrink-0" />
                 <span>Manage Payers</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={onAddUser} tooltip="Add User">
-                <UserPlus className="h-4 w-4 shrink-0" />
-                <span>Add User</span>
+              <SidebarMenuButton isActive={view === "manage-budgets"} onClick={() => nav("manage-budgets")} tooltip="Manage Budgets">
+                <LayoutDashboard className="h-4 w-4 shrink-0" />
+                <span>Budgets</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={onCleanData} tooltip="AI Clean Data">
+              <SidebarMenuButton isActive={view === "clean-data"} onClick={() => nav("clean-data")} tooltip="AI Advisor">
                 <Sparkles className="h-4 w-4 shrink-0" />
-                <span>Clean Data</span>
+                <span>AI Advisor</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
+
+        {/* Admin (only shown to admins) */}
+        {isAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Admin</SidebarGroupLabel>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton isActive={view === "admin"} onClick={() => nav("admin")} tooltip="Users">
+                  <ShieldCheck className="h-4 w-4 shrink-0" />
+                  <span>Users</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton isActive={view === "add-user"} onClick={() => nav("add-user")} tooltip="Add User">
+                  <UserPlus className="h-4 w-4 shrink-0" />
+                  <span>Add User</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       {/* User footer */}
@@ -218,7 +239,7 @@ export function AppSidebar({ view, onViewChange, currentMonth, onMonthChange, on
           </Avatar>
           <div className="flex flex-col leading-none min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
             <span className="text-xs font-medium truncate">{user?.email}</span>
-            <span className="text-xs opacity-60">Account</span>
+            <span className="text-xs opacity-60">{isAdmin ? "Admin" : "Account"}</span>
           </div>
           <Button
             variant="ghost"

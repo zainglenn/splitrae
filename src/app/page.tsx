@@ -11,15 +11,17 @@ import { ExpenseForm } from "@/components/ExpenseForm";
 import { ExpenseList } from "@/components/ExpenseList";
 import { CategoryBreakdown } from "@/components/CategoryBreakdown";
 import { AuthGate } from "@/components/AuthGate";
-import { AddUserDialog } from "@/components/AddUserDialog";
-import { ManagePayersDialog } from "@/components/ManagePayersDialog";
+import { AddUserView } from "@/components/AddUserView";
+import { ManagePayersView } from "@/components/ManagePayersView";
+import { ManageBudgetsView } from "@/components/ManageBudgetsView";
+import { AdminView } from "@/components/AdminView";
+
 import { HouseholdBalance } from "@/components/HouseholdBalance";
 import { AIInsightsCard } from "@/components/AIInsightsCard";
 import { RecordPaymentDialog } from "@/components/RecordPaymentDialog";
 import { BudgetProgressCard } from "@/components/BudgetProgressCard";
-import { ManageBudgetsDialog } from "@/components/ManageBudgetsDialog";
 import { RecurringBanner } from "@/components/RecurringBanner";
-import { CleanDataDialog } from "@/components/CleanDataDialog";
+import { CleanDataView } from "@/components/CleanDataView";
 import { useAuth } from "@/hooks/useAuth";
 import { useExpenses } from "@/hooks/useExpenses";
 import { usePayers } from "@/hooks/usePayers";
@@ -50,11 +52,7 @@ function TrackerApp({ userId }: { userId: string }) {
   const [currentMonth, setCurrentMonth] = useState(toMonthKey(today));
   const [formOpen, setFormOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
-  const [addUserOpen, setAddUserOpen] = useState(false);
-  const [managePayersOpen, setManagePayersOpen] = useState(false);
   const [recordPaymentPayerId, setRecordPaymentPayerId] = useState<string | null>(null);
-  const [manageBudgetsOpen, setManageBudgetsOpen] = useState(false);
-  const [cleanDataOpen, setCleanDataOpen] = useState(false);
 
   const { expenses, loading, addExpense, updateExpense, deleteExpense } = useExpenses(currentMonth, userId);
   const { payers, addPayer, deletePayer } = usePayers(userId);
@@ -102,9 +100,6 @@ function TrackerApp({ userId }: { userId: string }) {
         onViewChange={setView}
         currentMonth={currentMonth}
         onMonthChange={handleMonthClick}
-        onAddUser={() => setAddUserOpen(true)}
-        onManagePayers={() => setManagePayersOpen(true)}
-        onCleanData={() => setCleanDataOpen(true)}
       />
 
       <SidebarInset className="flex flex-col min-h-svh bg-muted/30">
@@ -116,7 +111,17 @@ function TrackerApp({ userId }: { userId: string }) {
         />
 
         <main className="flex-1 overflow-y-auto p-3 sm:p-6 pb-safe space-y-4 sm:space-y-5">
-          {view === "dashboard" ? (
+          {view === "clean-data" ? (
+            <CleanDataView userId={userId} />
+          ) : view === "add-user" ? (
+            <AddUserView />
+          ) : view === "manage-payers" ? (
+            <ManagePayersView userId={userId} />
+          ) : view === "manage-budgets" ? (
+            <ManageBudgetsView userId={userId} />
+          ) : view === "admin" ? (
+            <AdminView userId={userId} />
+          ) : view === "dashboard" ? (
             <DashboardView
               userId={userId}
               year={currentYear}
@@ -141,7 +146,7 @@ function TrackerApp({ userId }: { userId: string }) {
               <BudgetProgressCard
                 expenses={expenses}
                 budgets={budgets}
-                onManageBudgets={() => setManageBudgetsOpen(true)}
+                onManageBudgets={() => setView("manage-budgets")}
               />
               <Card className="border-0 shadow-sm">
                 <CardHeader className="pb-2 pt-5">
@@ -156,7 +161,7 @@ function TrackerApp({ userId }: { userId: string }) {
                     defaultDate={defaultDate}
                     onRecordPayment={setRecordPaymentPayerId}
                     onDeletePayment={deletePayment}
-                    onManagePayers={() => setManagePayersOpen(true)}
+                    onManagePayers={() => setView("manage-payers")}
                   />
                 </CardContent>
               </Card>
@@ -200,25 +205,6 @@ function TrackerApp({ userId }: { userId: string }) {
         onSave={handleSave}
         initialData={editingExpense}
         defaultDate={defaultDate}
-      />
-      <AddUserDialog open={addUserOpen} onClose={() => setAddUserOpen(false)} />
-      <ManagePayersDialog
-        open={managePayersOpen}
-        onClose={() => setManagePayersOpen(false)}
-        payers={payers}
-        onAdd={addPayer}
-        onDelete={deletePayer}
-      />
-      <ManageBudgetsDialog
-        open={manageBudgetsOpen}
-        onClose={() => setManageBudgetsOpen(false)}
-        budgets={budgets}
-        onSet={setBudget}
-        onDelete={deleteBudget}
-      />
-      <CleanDataDialog
-        open={cleanDataOpen}
-        onClose={() => setCleanDataOpen(false)}
       />
       {recordingPayer && (
         <RecordPaymentDialog

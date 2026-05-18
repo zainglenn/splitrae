@@ -13,8 +13,19 @@ interface Props {
   onAddExpense: () => void;
 }
 
+const VIEW_TITLES: Record<string, string> = {
+  "clean-data": "AI Advisor",
+  "add-user": "Add User",
+  "manage-payers": "Manage Payers",
+  "manage-budgets": "Budgets",
+  "admin": "Users",
+};
+
 export function DashboardTopbar({ view, monthLabel, year, onAddExpense }: Props) {
-  const title = view === "dashboard" ? `${year} Overview` : monthLabel;
+  const title =
+    view === "dashboard" ? `${year} Overview` :
+    view === "month" ? monthLabel :
+    VIEW_TITLES[view] ?? "";
 
   return (
     <header className="flex h-14 items-center gap-3 border-b bg-background px-4 shrink-0">

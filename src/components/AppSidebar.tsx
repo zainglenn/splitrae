@@ -11,15 +11,11 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, CalendarRange, CalendarDays, LayoutDashboard, Wallet, LogOut, Users, Sparkles, ShieldCheck } from "lucide-react";
+import { CalendarRange, CalendarDays, LayoutDashboard, Wallet, LogOut, Users, Sparkles, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 
@@ -27,10 +23,6 @@ function toMonthKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function shortMonth(key: string) {
-  const [year, month] = key.split("-");
-  return new Date(Number(year), Number(month) - 1, 1).toLocaleDateString("en-AE", { month: "long" });
-}
 
 function formatMonthLabel(key: string) {
   const [year, month] = key.split("-");
@@ -40,22 +32,8 @@ function formatMonthLabel(key: string) {
   });
 }
 
-function getYearMonthMap(): Record<string, string[]> {
-  const map: Record<string, string[]> = {};
-  const now = new Date();
-  const start = new Date(2026, 0, 1);
-  const d = new Date(now.getFullYear(), now.getMonth(), 1);
-  while (d >= start) {
-    const key = toMonthKey(d);
-    const year = key.split("-")[0];
-    if (!map[year]) map[year] = [];
-    map[year].push(key);
-    d.setMonth(d.getMonth() - 1);
-  }
-  return map;
-}
 
-export type AppView = "dashboard" | "month" | "clean-data" | "manage-payers" | "manage-budgets" | "admin";
+export type AppView = "dashboard" | "month" | "history" | "clean-data" | "manage-payers" | "manage-budgets" | "admin";
 
 interface Props {
   view: AppView;
@@ -70,26 +48,7 @@ export function AppSidebar({ view, onViewChange, currentMonth, onMonthChange, us
   const { user, signOut } = useAuth();
   const { isAdmin } = useProfile(userId);
   const { setOpenMobile } = useSidebar();
-  const yearMonthMap = getYearMonthMap();
-  const years = Object.keys(yearMonthMap).sort((a, b) => Number(b) - Number(a));
-  const currentYear = currentMonth.split("-")[0];
-
-  const [openYears, setOpenYears] = useState<Set<string>>(new Set([currentYear]));
   const initials = user?.email?.slice(0, 2).toUpperCase() ?? "??";
-
-  function toggleYear(year: string) {
-    setOpenYears((prev) => {
-      const next = new Set(prev);
-      next.has(year) ? next.delete(year) : next.add(year);
-      return next;
-    });
-  }
-
-  function selectMonth(month: string) {
-    onMonthChange(month);
-    onViewChange("month");
-    setOpenMobile(false);
-  }
 
   function selectDashboard() {
     onViewChange("dashboard");
@@ -141,46 +100,13 @@ export function AppSidebar({ view, onViewChange, currentMonth, onMonthChange, us
                 <span>Active Month</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroup>
 
-        {/* Year → Month history tree */}
-        <SidebarGroup>
-          <SidebarGroupLabel>History</SidebarGroupLabel>
-          <SidebarMenu>
-            {years.map((year) => (
-              <Collapsible
-                key={year}
-                open={openYears.has(year)}
-                onOpenChange={() => toggleYear(year)}
-                className="group/collapsible"
-              >
-                <SidebarMenuItem>
-                  <SidebarMenuButton tooltip={year} onClick={() => toggleYear(year)}>
-                    <CalendarRange className="h-4 w-4 shrink-0" />
-                    <span className="font-medium">{year}</span>
-                    <ChevronRight
-                      className={`ml-auto h-4 w-4 shrink-0 transition-transform duration-200 ${openYears.has(year) ? "rotate-90" : ""}`}
-                    />
-                  </SidebarMenuButton>
-
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
-                      {yearMonthMap[year].map((month) => (
-                        <SidebarMenuSubItem key={month}>
-                          <SidebarMenuSubButton
-                            isActive={view === "month" && month === currentMonth}
-                            onClick={() => selectMonth(month)}
-                          >
-                            {shortMonth(month)}
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      ))}
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
-                </SidebarMenuItem>
-              </Collapsible>
-            ))}
+            <SidebarMenuItem>
+              <SidebarMenuButton isActive={view === "history" || (view === "month" && currentMonth !== toMonthKey(new Date()))} onClick={() => nav("history")} tooltip="History">
+                <CalendarRange className="h-4 w-4 shrink-0" />
+                <span>History</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
 

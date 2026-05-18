@@ -21,6 +21,7 @@ import { BudgetProgressCard } from "@/components/BudgetProgressCard";
 import { RecurringBanner } from "@/components/RecurringBanner";
 import { CleanDataView } from "@/components/CleanDataView";
 import { HistoryView } from "@/components/HistoryView";
+import { ImportExpensesPage } from "@/components/ImportExpensesPage";
 import { useAuth } from "@/hooks/useAuth";
 import { useExpenses } from "@/hooks/useExpenses";
 import { usePayers } from "@/hooks/usePayers";
@@ -126,7 +127,13 @@ function TrackerApp({ userId }: { userId: string }) {
         />
 
         <main className="flex-1 overflow-y-auto p-3 sm:p-6 pb-safe space-y-4 sm:space-y-5">
-          {view === "clean-data" ? (
+          {view === "import-expenses" ? (
+            <ImportExpensesPage
+              userId={ownerId}
+              currentMonth={currentMonth}
+              onNavigateToMonth={handleMonthClick}
+            />
+          ) : view === "clean-data" ? (
             <CleanDataView userId={ownerId} />
           ) : view === "history" ? (
             <HistoryView userId={ownerId} onMonthClick={handleMonthClick} />

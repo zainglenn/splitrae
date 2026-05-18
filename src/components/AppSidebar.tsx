@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { CalendarRange, CalendarDays, CalendarPlus, LayoutDashboard, Wallet, LogOut, Users, Sparkles, ShieldCheck } from "lucide-react";
+import { CalendarRange, CalendarDays, CalendarPlus, LayoutDashboard, Wallet, LogOut, Users, Sparkles, ShieldCheck, Upload } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 
@@ -33,7 +33,7 @@ function formatMonthLabel(key: string) {
 }
 
 
-export type AppView = "dashboard" | "month" | "next-month" | "history" | "clean-data" | "manage-payers" | "manage-budgets" | "admin";
+export type AppView = "dashboard" | "month" | "next-month" | "history" | "clean-data" | "manage-payers" | "manage-budgets" | "admin" | "import-expenses";
 
 interface Props {
   view: AppView;
@@ -112,6 +112,13 @@ export function AppSidebar({ view, onViewChange, currentMonth, onMonthChange, us
               <SidebarMenuButton isActive={view === "history" || (view === "month" && currentMonth !== toMonthKey(new Date()))} onClick={() => nav("history")} tooltip="History">
                 <CalendarRange className="h-4 w-4 shrink-0" />
                 <span>History</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            <SidebarMenuItem>
+              <SidebarMenuButton isActive={view === "import-expenses"} onClick={() => nav("import-expenses")} tooltip="Import">
+                <Upload className="h-4 w-4 shrink-0" />
+                <span>Import</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>

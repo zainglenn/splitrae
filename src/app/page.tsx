@@ -49,6 +49,8 @@ function formatMonthLabel(key: string) {
 
 function TrackerApp({ userId }: { userId: string }) {
   const today = new Date();
+  const nextMonthDate = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+  const nextMonth = toMonthKey(nextMonthDate);
   const [view, setView] = useState<AppView>("dashboard");
   const [currentMonth, setCurrentMonth] = useState(toMonthKey(today));
   const [formOpen, setFormOpen] = useState(false);
@@ -63,7 +65,7 @@ function TrackerApp({ userId }: { userId: string }) {
   const { expenses, loading, addExpense, updateExpense, deleteExpense } = useExpenses(currentMonth, ownerId);
   const { payers, addPayer, deletePayer, linkPayer, unlinkPayer } = usePayers(ownerId);
   const { payments, addPayment, deletePayment } = usePayments(currentMonth, ownerId);
-  const { budgets, setBudget, deleteBudget } = useBudgets(ownerId);
+  const { budgets, setBudget, deleteBudget } = useBudgets(ownerId, currentMonth);
 
   const prevMonth = (() => {
     const [y, m] = currentMonth.split("-").map(Number);
@@ -126,10 +128,12 @@ function TrackerApp({ userId }: { userId: string }) {
             <CleanDataView userId={ownerId} />
           ) : view === "history" ? (
             <HistoryView userId={ownerId} onMonthClick={handleMonthClick} />
+          ) : view === "next-month" ? (
+            <ManageBudgetsView userId={ownerId} month={nextMonth} />
           ) : view === "manage-payers" ? (
             <ManagePayersView userId={ownerId} />
           ) : view === "manage-budgets" ? (
-            <ManageBudgetsView userId={ownerId} />
+            <ManageBudgetsView userId={ownerId} month={currentMonth} />
           ) : view === "admin" ? (
             <AdminView userId={userId} />
           ) : view === "dashboard" ? (

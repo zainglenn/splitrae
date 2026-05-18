@@ -16,6 +16,7 @@ interface Props {
 
 const VIEW_TITLES: Record<string, string> = {
   "history": "History",
+  "next-month": "Next Month",
   "clean-data": "AI Advisor",
   "manage-payers": "Manage Payers",
   "manage-budgets": "Budgets",

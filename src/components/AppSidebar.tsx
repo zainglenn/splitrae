@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { CalendarRange, CalendarDays, LayoutDashboard, Wallet, LogOut, Users, Sparkles, ShieldCheck } from "lucide-react";
+import { CalendarRange, CalendarDays, CalendarPlus, LayoutDashboard, Wallet, LogOut, Users, Sparkles, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 
@@ -33,7 +33,7 @@ function formatMonthLabel(key: string) {
 }
 
 
-export type AppView = "dashboard" | "month" | "history" | "clean-data" | "manage-payers" | "manage-budgets" | "admin";
+export type AppView = "dashboard" | "month" | "next-month" | "history" | "clean-data" | "manage-payers" | "manage-budgets" | "admin";
 
 interface Props {
   view: AppView;
@@ -98,6 +98,13 @@ export function AppSidebar({ view, onViewChange, currentMonth, onMonthChange, us
               >
                 <CalendarDays className="h-4 w-4 shrink-0" />
                 <span>Active Month</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            <SidebarMenuItem>
+              <SidebarMenuButton isActive={view === "next-month"} onClick={() => nav("next-month")} tooltip="Next Month">
+                <CalendarPlus className="h-4 w-4 shrink-0" />
+                <span>Next Month</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
 

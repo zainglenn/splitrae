@@ -7,10 +7,11 @@ import { PageSection } from "@/components/PageSection";
 import { useBudgets } from "@/hooks/useBudgets";
 import { supabase } from "@/lib/supabase";
 import { Category, CATEGORIES, CATEGORY_META } from "@/types/expense";
-import { X, Sparkles, Loader2, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
+import { X, Sparkles, Loader2, CheckCircle2, ChevronDown, ChevronUp, History } from "lucide-react";
 
 interface Props {
   userId: string;
+  month?: string;
 }
 
 const fmt = new Intl.NumberFormat("en-AE", {
@@ -20,8 +21,8 @@ const fmt = new Intl.NumberFormat("en-AE", {
   maximumFractionDigits: 0,
 });
 
-export function ManageBudgetsView({ userId }: Props) {
-  const { budgets, setBudget, deleteBudget } = useBudgets(userId);
+export function ManageBudgetsView({ userId, month = "" }: Props) {
+  const { budgets, setBudget, deleteBudget } = useBudgets(userId, month);
   const [drafts, setDrafts] = useState<Partial<Record<Category, string>>>({});
   const [generating, setGenerating] = useState(false);
   const [suggestions, setSuggestions] = useState<Partial<Record<Category, number>> | null>(null);
@@ -29,6 +30,8 @@ export function ManageBudgetsView({ userId }: Props) {
   const [applying, setApplying] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(true);
+  const [backfilling, setBackfilling] = useState(false);
+  const [backfillProgress, setBackfillProgress] = useState("");
 
   useEffect(() => {
     const initial: Partial<Record<Category, string>> = {};
@@ -122,6 +125,56 @@ export function ManageBudgetsView({ userId }: Props) {
       next.has(cat) ? next.delete(cat) : next.add(cat);
       return next;
     });
+  }
+
+  async function handleBackfill() {
+    setBackfilling(true);
+    setBackfillProgress("Fetching all expenses…");
+
+    const { data } = await supabase
+      .from("expenses")
+      .select("date, amount, category")
+      .eq("user_id", userId);
+
+    if (!data || data.length === 0) {
+      setBackfillProgress("No expense data found.");
+      setBackfilling(false);
+      return;
+    }
+
+    // Aggregate by month + category
+    const monthMap = new Map<string, Record<string, number>>();
+    const currentMonthKey = month || new Date().toISOString().slice(0, 7);
+    for (const e of data) {
+      const m = e.date.slice(0, 7);
+      if (m >= currentMonthKey) continue; // skip current + future months
+      if (!monthMap.has(m)) monthMap.set(m, {});
+      const cats = monthMap.get(m)!;
+      cats[e.category] = (cats[e.category] ?? 0) + e.amount;
+    }
+
+    const months = Array.from(monthMap.keys()).sort();
+    if (months.length === 0) {
+      setBackfillProgress("No historical months to backfill.");
+      setBackfilling(false);
+      return;
+    }
+
+    let done = 0;
+    for (const m of months) {
+      setBackfillProgress(`Setting budgets for ${m} (${++done}/${months.length})…`);
+      const cats = monthMap.get(m)!;
+      const rows = Object.entries(cats).map(([category, amount]) => ({
+        user_id: userId,
+        category,
+        amount: Math.round(amount),
+        month: m,
+      }));
+      await supabase.from("budgets").upsert(rows, { onConflict: "user_id,category,month" });
+    }
+
+    setBackfillProgress(`Done — budgets set for ${months.length} month${months.length !== 1 ? "s" : ""}.`);
+    setBackfilling(false);
   }
 
   const suggestedCategories = suggestions ? (Object.keys(suggestions) as Category[]) : [];
@@ -244,6 +297,31 @@ export function ManageBudgetsView({ userId }: Props) {
 
           {suggestions && suggestedCategories.length === 0 && (
             <p className="text-sm text-muted-foreground">No suggestions — not enough historical data yet.</p>
+          )}
+        </div>
+      </PageSection>
+
+      {/* Backfill historical budgets */}
+      <PageSection
+        title="Historical Backfill"
+        description="Set budgets for all past months equal to what was actually spent, so the Budget Tracker has complete history."
+      >
+        <div className="flex items-center gap-3 flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleBackfill}
+            disabled={backfilling}
+            className="gap-2"
+          >
+            {backfilling
+              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              : <History className="h-3.5 w-3.5" />
+            }
+            {backfilling ? "Backfilling…" : "Backfill History"}
+          </Button>
+          {backfillProgress && (
+            <span className="text-sm text-muted-foreground">{backfillProgress}</span>
           )}
         </div>
       </PageSection>

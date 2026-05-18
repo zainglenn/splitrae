@@ -3,16 +3,17 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { usePayerYearlyBalance } from "@/hooks/usePayerYearlyBalance";
-import { CATEGORY_META, Category } from "@/types/expense";
+import { CATEGORY_META, Category, Expense, Budget } from "@/types/expense";
 import {
   Loader2,
-  Users,
   TrendingUp,
   TrendingDown,
   Minus,
   Flame,
   Activity,
   Wallet,
+  Settings2,
+  Sparkles,
 } from "lucide-react";
 
 interface Props {
@@ -21,6 +22,9 @@ interface Props {
   myPayerId: string | null;
   numPayers: number;
   onMonthClick: (month: string) => void;
+  currentMonthExpenses: Expense[];
+  currentMonthBudgets: Budget[];
+  onManageBudgets: () => void;
 }
 
 const fmt = new Intl.NumberFormat("en-AE", {
@@ -35,6 +39,128 @@ const fmtExact = new Intl.NumberFormat("en-AE", {
   currency: "AED",
   minimumFractionDigits: 2,
 });
+
+const fmtBudget = new Intl.NumberFormat("en-AE", {
+  style: "currency",
+  currency: "AED",
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
+
+function CurrentMonthBudget({
+  expenses,
+  budgets,
+  monthKey,
+  onManageBudgets,
+}: {
+  expenses: Expense[];
+  budgets: Budget[];
+  monthKey: string;
+  onManageBudgets: () => void;
+}) {
+  const [year, month] = monthKey.split("-");
+  const monthLabel = new Date(Number(year), Number(month) - 1, 1).toLocaleDateString("en-AE", { month: "long" });
+
+  if (budgets.length === 0) {
+    return (
+      <Card className="border-0 shadow-sm">
+        <CardContent className="py-4 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-slate-700">{monthLabel} — no budgets set</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Let AI analyse your history and generate limits.</p>
+          </div>
+          <button
+            onClick={onManageBudgets}
+            className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-violet-600 text-white hover:bg-violet-700 transition-colors flex-shrink-0"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Generate
+          </button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const spent: Partial<Record<Category, number>> = {};
+  for (const e of expenses) {
+    spent[e.category] = (spent[e.category] ?? 0) + e.amount;
+  }
+
+  const totalBudget = budgets.reduce((s, b) => s + b.amount, 0);
+  const totalSpent = budgets.reduce((s, b) => s + (spent[b.category as Category] ?? 0), 0);
+  const overallPct = totalBudget > 0 ? Math.min((totalSpent / totalBudget) * 100, 100) : 0;
+  const overallOver = totalSpent > totalBudget;
+  const overCount = budgets.filter((b) => (spent[b.category as Category] ?? 0) > b.amount).length;
+
+  return (
+    <Card className="border-0 shadow-sm">
+      <CardHeader className="flex flex-row items-center justify-between pb-3 pt-5">
+        <div>
+          <CardTitle className="text-sm font-semibold">{monthLabel} Budgets</CardTitle>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {fmtBudget.format(totalSpent)} of {fmtBudget.format(totalBudget)} spent
+            {overCount > 0 && <span className="ml-1.5 text-rose-500 font-medium">· {overCount} over limit</span>}
+          </p>
+        </div>
+        <button
+          onClick={onManageBudgets}
+          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+        >
+          <Settings2 className="h-3.5 w-3.5" />
+          <span>Manage</span>
+        </button>
+      </CardHeader>
+      <CardContent className="pt-0 space-y-0">
+        {/* Overall bar */}
+        <div className="mb-4">
+          <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{
+                width: `${overallPct}%`,
+                backgroundColor: overallOver ? "#ef4444" : overallPct >= 80 ? "#f59e0b" : "#6366f1",
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Per-category rows */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+          {budgets.map((budget) => {
+            const cat = budget.category as Category;
+            const meta = CATEGORY_META[cat];
+            const amountSpent = spent[cat] ?? 0;
+            const pct = Math.min((amountSpent / budget.amount) * 100, 100);
+            const over = amountSpent > budget.amount;
+            const warn = pct >= 80 && !over;
+            const barColor = over ? "#ef4444" : warn ? "#f59e0b" : meta.color;
+
+            return (
+              <div key={cat}>
+                <div className="flex items-center justify-between mb-1 gap-2 min-w-0">
+                  <div className="flex items-center gap-1 min-w-0">
+                    <span className="text-sm flex-shrink-0">{meta.emoji}</span>
+                    <span className="text-xs font-medium truncate" style={{ color: meta.color }}>{cat}</span>
+                    {over && <span className="text-[10px] font-bold text-rose-500 flex-shrink-0">over</span>}
+                  </div>
+                  <span className="text-xs tabular-nums text-slate-500 flex-shrink-0">
+                    {fmtBudget.format(amountSpent)}<span className="text-slate-300"> / </span>{fmtBudget.format(budget.amount)}
+                  </span>
+                </div>
+                <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${pct}%`, backgroundColor: barColor }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 function formatMonthLabel(key: string, short = false) {
   const [year, month] = key.split("-");
@@ -52,7 +178,7 @@ function getBarColor(total: number, avg: number): string {
   return "#ef4444";
 }
 
-export function DashboardView({ userId, year, myPayerId, numPayers, onMonthClick }: Props) {
+export function DashboardView({ userId, year, myPayerId, numPayers, onMonthClick, currentMonthExpenses, currentMonthBudgets, onManageBudgets }: Props) {
   const { monthStats, categoryTotals, grandTotal, loading } = useDashboardStats(userId, year);
   const yearlyBalance = usePayerYearlyBalance(userId, myPayerId, numPayers, year);
 
@@ -340,6 +466,14 @@ export function DashboardView({ userId, year, myPayerId, numPayers, onMonthClick
           </Card>
         )}
       </div>
+
+      {/* Current month budget progress */}
+      <CurrentMonthBudget
+        expenses={currentMonthExpenses}
+        budgets={currentMonthBudgets}
+        monthKey={currentMonthKey}
+        onManageBudgets={onManageBudgets}
+      />
 
       {/* Insight strip */}
       {hasData && (

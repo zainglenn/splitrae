@@ -143,6 +143,9 @@ function TrackerApp({ userId }: { userId: string }) {
               myPayerId={myPayerId}
               numPayers={payers.length}
               onMonthClick={handleMonthClick}
+              currentMonthExpenses={expenses}
+              currentMonthBudgets={budgets}
+              onManageBudgets={() => setView("manage-budgets")}
             />
           ) : loading ? (
             <div className="flex items-center justify-center py-32">

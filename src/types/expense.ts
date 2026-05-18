@@ -57,6 +57,13 @@ export interface Expense {
   category: Category;
   date: string; // YYYY-MM-DD
   split: boolean; // true = shared household expense (split 50/50)
+  is_recurring?: boolean;
+}
+
+export interface Budget {
+  id: string;
+  category: Category;
+  amount: number;
 }
 
 export type MonthKey = string; // "YYYY-MM"

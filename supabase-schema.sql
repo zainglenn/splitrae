@@ -24,3 +24,24 @@ create index expenses_user_date on public.expenses (user_id, date desc);
 
 -- Allow real-time subscriptions
 alter publication supabase_realtime add table public.expenses;
+
+-- Recurring flag for expenses
+alter table public.expenses add column if not exists is_recurring boolean default false;
+
+-- Budgets table: monthly budget limits per category
+create table if not exists public.budgets (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid references auth.users not null,
+  category    text not null,
+  amount      numeric(12, 2) not null,
+  created_at  timestamptz default now(),
+  unique(user_id, category)
+);
+
+alter table public.budgets enable row level security;
+
+create policy "Users manage own budgets"
+  on public.budgets
+  for all
+  using  (auth.uid() = user_id)
+  with check (auth.uid() = user_id);

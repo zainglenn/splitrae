@@ -13,18 +13,25 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Pencil, Trash2, Receipt, ArrowUpDown, ArrowUp, ArrowDown, X } from "lucide-react";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Pencil, Trash2, Receipt, ArrowUpDown, ArrowUp, ArrowDown, X, Sparkles, RefreshCw, Loader2, CheckCircle2 } from "lucide-react";
+
+interface NormalizeCorrection {
+  id: string;
+  description?: string;
+  category?: string;
+}
 
 interface Props {
   expenses: Expense[];
   onEdit: (expense: Expense) => void;
   onDelete: (id: string) => void;
+  onUpdate: (id: string, updates: Omit<Expense, "id">) => void;
   filterCategory?: Category | null;
   onClearCategoryFilter?: () => void;
 }
@@ -52,11 +59,14 @@ function SortIcon({ col, active, dir }: { col: string; active: boolean; dir: Sor
     : <ArrowDown className="h-3.5 w-3.5" />;
 }
 
-export function ExpenseList({ expenses, onEdit, onDelete, filterCategory, onClearCategoryFilter }: Props) {
+export function ExpenseList({ expenses, onEdit, onDelete, onUpdate, filterCategory, onClearCategoryFilter }: Props) {
   const [search, setSearch] = useState("");
-  const [splitFilter, setSplitFilter] = useState<"all" | "split" | "personal">("all");
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [normalizing, setNormalizing] = useState(false);
+  const [corrections, setCorrections] = useState<NormalizeCorrection[]>([]);
+  const [normalizeOpen, setNormalizeOpen] = useState(false);
+  const [normalizeClean, setNormalizeClean] = useState(false);
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) {
@@ -67,11 +77,52 @@ export function ExpenseList({ expenses, onEdit, onDelete, filterCategory, onClea
     }
   }
 
+  async function handleNormalize() {
+    setNormalizing(true);
+    try {
+      const res = await fetch("/api/ai/normalize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          expenses: expenses.map((e) => ({ id: e.id, description: e.description, category: e.category })),
+        }),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.corrections && data.corrections.length > 0) {
+        setCorrections(data.corrections);
+        setNormalizeOpen(true);
+      } else {
+        setNormalizeClean(true);
+        setTimeout(() => setNormalizeClean(false), 3000);
+      }
+    } catch {
+      // silently ignore
+    } finally {
+      setNormalizing(false);
+    }
+  }
+
+  function applyCorrections() {
+    for (const correction of corrections) {
+      const original = expenses.find((e) => e.id === correction.id);
+      if (!original) continue;
+      onUpdate(correction.id, {
+        description: correction.description ?? original.description,
+        amount: original.amount,
+        category: (correction.category as Category) ?? original.category,
+        date: original.date,
+        split: original.split,
+        is_recurring: original.is_recurring,
+      });
+    }
+    setNormalizeOpen(false);
+    setCorrections([]);
+  }
+
   const filtered = useMemo(() => {
     let list = expenses;
     if (filterCategory) list = list.filter((e) => e.category === filterCategory);
-    if (splitFilter === "split") list = list.filter((e) => e.split);
-    if (splitFilter === "personal") list = list.filter((e) => !e.split);
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter((e) => e.description.toLowerCase().includes(q));
@@ -84,7 +135,7 @@ export function ExpenseList({ expenses, onEdit, onDelete, filterCategory, onClea
       else if (sortKey === "category") cmp = a.category.localeCompare(b.category);
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [expenses, filterCategory, splitFilter, search, sortKey, sortDir]);
+  }, [expenses, filterCategory, search, sortKey, sortDir]);
 
   if (expenses.length === 0) {
     return (
@@ -102,6 +153,50 @@ export function ExpenseList({ expenses, onEdit, onDelete, filterCategory, onClea
 
   return (
     <div className="space-y-3">
+      {/* Normalize preview dialog */}
+      <Dialog open={normalizeOpen} onOpenChange={(v) => !v && setNormalizeOpen(false)}>
+        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold">AI Suggested Corrections</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground -mt-1 mb-2">
+            Review the suggested changes. Only highlighted fields will be updated.
+          </p>
+          <div className="space-y-2">
+            {corrections.map((c) => {
+              const original = expenses.find((e) => e.id === c.id);
+              if (!original) return null;
+              return (
+                <div key={c.id} className="rounded-lg border p-3 space-y-1 text-sm">
+                  {c.description && c.description !== original.description && (
+                    <div className="flex gap-2 items-start">
+                      <span className="text-muted-foreground w-20 flex-shrink-0">Name</span>
+                      <span className="line-through text-slate-400 truncate">{original.description}</span>
+                      <span className="text-slate-400">→</span>
+                      <span className="font-medium text-slate-800 truncate">{c.description}</span>
+                    </div>
+                  )}
+                  {c.category && c.category !== original.category && (
+                    <div className="flex gap-2 items-start">
+                      <span className="text-muted-foreground w-20 flex-shrink-0">Category</span>
+                      <span className="line-through text-slate-400">{original.category}</span>
+                      <span className="text-slate-400">→</span>
+                      <span className="font-medium text-slate-800">{c.category}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <DialogFooter className="gap-2 pt-2">
+            <Button variant="outline" onClick={() => setNormalizeOpen(false)}>Cancel</Button>
+            <Button onClick={applyCorrections} className="bg-primary hover:bg-primary/90">
+              Apply {corrections.length} {corrections.length === 1 ? "change" : "changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Filters row */}
       <div className="space-y-2">
         <div className="flex gap-2">
@@ -109,20 +204,28 @@ export function ExpenseList({ expenses, onEdit, onDelete, filterCategory, onClea
             placeholder="Search…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-10 flex-1 text-base"
+            className="h-10 text-base flex-1"
           />
-          <Select value={splitFilter} onValueChange={(v) => setSplitFilter(v as typeof splitFilter)}>
-            <SelectTrigger className="h-10 w-32 shrink-0 text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="split">Split</SelectItem>
-              <SelectItem value="personal">Personal</SelectItem>
-            </SelectContent>
-          </Select>
+          <Button
+            variant="outline"
+            size="sm"
+            className={`h-10 gap-1.5 flex-shrink-0 transition-colors ${normalizeClean ? "text-emerald-700 border-emerald-200 hover:bg-emerald-50" : "text-violet-700 border-violet-200 hover:bg-violet-50"}`}
+            onClick={handleNormalize}
+            disabled={normalizing}
+          >
+            {normalizing ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : normalizeClean ? (
+              <CheckCircle2 className="h-3.5 w-3.5" />
+            ) : (
+              <Sparkles className="h-3.5 w-3.5" />
+            )}
+            <span className="hidden sm:inline">
+              {normalizing ? "Analyzing…" : normalizeClean ? "All clean!" : "Normalize"}
+            </span>
+          </Button>
         </div>
-        {(filterCategory || search || splitFilter !== "all") && (
+        {(filterCategory || search) && (
           <div className="flex items-center gap-2 flex-wrap">
             {filterCategory && (
               <button
@@ -138,12 +241,12 @@ export function ExpenseList({ expenses, onEdit, onDelete, filterCategory, onClea
                 <X className="h-3.5 w-3.5 opacity-60" />
               </button>
             )}
-            {(search || splitFilter !== "all") && (
+            {search && (
               <Button
                 variant="ghost"
                 size="sm"
                 className="h-8 text-muted-foreground"
-                onClick={() => { setSearch(""); setSplitFilter("all"); }}
+                onClick={() => setSearch("")}
               >
                 Clear filters
               </Button>
@@ -153,7 +256,7 @@ export function ExpenseList({ expenses, onEdit, onDelete, filterCategory, onClea
             </span>
           </div>
         )}
-        {!filterCategory && search === "" && splitFilter === "all" && (
+        {!filterCategory && search === "" && (
           <p className="text-xs text-muted-foreground text-right tabular-nums">
             {filtered.length} transactions
           </p>
@@ -219,9 +322,9 @@ export function ExpenseList({ expenses, onEdit, onDelete, filterCategory, onClea
                       <div className="flex flex-col gap-1 min-w-0">
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span className="font-medium text-slate-800 truncate text-sm">{expense.description}</span>
-                          {expense.split && (
-                            <span className="shrink-0 text-xs font-medium px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-600">
-                              split
+                          {expense.is_recurring && (
+                            <span title="Recurring monthly">
+                              <RefreshCw className="h-3 w-3 flex-shrink-0 text-violet-500" />
                             </span>
                           )}
                         </div>

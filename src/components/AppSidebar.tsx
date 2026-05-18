@@ -19,7 +19,7 @@ import {
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, CalendarRange, CalendarDays, LayoutDashboard, Wallet, LogOut, UserPlus, Users } from "lucide-react";
+import { ChevronRight, CalendarRange, CalendarDays, LayoutDashboard, Wallet, LogOut, UserPlus, Users, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 function toMonthKey(date: Date) {
@@ -63,9 +63,10 @@ interface Props {
   onMonthChange: (month: string) => void;
   onAddUser: () => void;
   onManagePayers: () => void;
+  onCleanData: () => void;
 }
 
-export function AppSidebar({ view, onViewChange, currentMonth, onMonthChange, onAddUser, onManagePayers }: Props) {
+export function AppSidebar({ view, onViewChange, currentMonth, onMonthChange, onAddUser, onManagePayers, onCleanData }: Props) {
   const { user, signOut } = useAuth();
   const { setOpenMobile } = useSidebar();
   const yearMonthMap = getYearMonthMap();
@@ -195,6 +196,12 @@ export function AppSidebar({ view, onViewChange, currentMonth, onMonthChange, on
               <SidebarMenuButton onClick={onAddUser} tooltip="Add User">
                 <UserPlus className="h-4 w-4 shrink-0" />
                 <span>Add User</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton onClick={onCleanData} tooltip="AI Clean Data">
+                <Sparkles className="h-4 w-4 shrink-0" />
+                <span>Clean Data</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>

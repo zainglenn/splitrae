@@ -40,8 +40,8 @@ export function HouseholdBalance({
 }: Props) {
   const [expandedPayers, setExpandedPayers] = useState<Set<string>>(new Set());
 
-  const splitTotal = expenses.filter((e) => e.split).reduce((s, e) => s + e.amount, 0);
-  const owedPerPayer = splitTotal / 2;
+  const total = expenses.reduce((s, e) => s + e.amount, 0);
+  const owedPerPayer = payers.length > 0 ? total / payers.length : 0;
 
   function toggleExpand(id: string) {
     setExpandedPayers((prev) => {

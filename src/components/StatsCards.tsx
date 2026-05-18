@@ -2,10 +2,11 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Expense, CATEGORY_META, Category } from "@/types/expense";
-import { TrendingUp, Receipt, Tag, Users } from "lucide-react";
+import { TrendingUp, Receipt, Tag, Users, CalendarClock } from "lucide-react";
 
 interface Props {
   expenses: Expense[];
+  currentMonth?: string; // "YYYY-MM" — when provided and matches today, shows forecast
 }
 
 const fmt = new Intl.NumberFormat("en-AE", {
@@ -14,10 +15,20 @@ const fmt = new Intl.NumberFormat("en-AE", {
   minimumFractionDigits: 2,
 });
 
-export function StatsCards({ expenses }: Props) {
+export function StatsCards({ expenses, currentMonth }: Props) {
   const total = expenses.reduce((s, e) => s + e.amount, 0);
-  const splitTotal = expenses.filter((e) => e.split).reduce((s, e) => s + e.amount, 0);
-  const yourHalf = splitTotal / 2;
+  const yourHalf = total / 2;
+
+  const forecast = (() => {
+    if (!currentMonth) return null;
+    const today = new Date();
+    const nowMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+    if (currentMonth !== nowMonth || total === 0) return null;
+    const dayOfMonth = today.getDate();
+    const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    const dailyRate = total / dayOfMonth;
+    return dailyRate * daysInMonth;
+  })();
 
   const topCategory = (() => {
     const totals: Partial<Record<Category, number>> = {};
@@ -29,7 +40,7 @@ export function StatsCards({ expenses }: Props) {
   })();
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+    <div className={`grid gap-4 ${forecast !== null ? "grid-cols-2 sm:grid-cols-5" : "grid-cols-2 sm:grid-cols-4"}`}>
       <Card className="border-0 shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between pb-2 pt-5">
           <CardTitle className="text-sm font-medium text-muted-foreground">Total Spent</CardTitle>
@@ -52,7 +63,7 @@ export function StatsCards({ expenses }: Props) {
         </CardHeader>
         <CardContent>
           <p className="text-xl sm:text-2xl font-bold tabular-nums">{fmt.format(yourHalf)}</p>
-          <p className="text-xs text-muted-foreground mt-1 truncate">50% of shared</p>
+          <p className="text-xs text-muted-foreground mt-1 truncate">50% of total</p>
         </CardContent>
       </Card>
 
@@ -90,6 +101,21 @@ export function StatsCards({ expenses }: Props) {
           )}
         </CardContent>
       </Card>
+
+      {forecast !== null && (
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 pt-5">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Projected</CardTitle>
+            <div className="h-8 w-8 rounded-lg bg-orange-50 flex items-center justify-center">
+              <CalendarClock className="h-4 w-4 text-orange-500" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xl sm:text-2xl font-bold tabular-nums">{fmt.format(forecast)}</p>
+            <p className="text-xs text-muted-foreground mt-1">at current pace</p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

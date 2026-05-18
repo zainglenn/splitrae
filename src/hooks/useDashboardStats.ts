@@ -8,13 +8,13 @@ export interface MonthStat {
   month: string;
   total: number;
   count: number;
+  topCategory?: Category;
 }
 
 export interface DashboardStats {
   monthStats: MonthStat[];
   categoryTotals: Partial<Record<Category, number>>;
   grandTotal: number;
-  splitTotal: number;
   loading: boolean;
 }
 
@@ -56,24 +56,27 @@ export function useDashboardStats(userId: string, year: number): DashboardStats 
 
   const monthStats: MonthStat[] = [];
   const monthMap: Record<string, { total: number; count: number }> = {};
+  const monthCategoryMap: Record<string, Partial<Record<Category, number>>> = {};
   const categoryTotals: Partial<Record<Category, number>> = {};
   let grandTotal = 0;
-  let splitTotal = 0;
 
   for (const e of expenses) {
     const month = e.date.slice(0, 7);
     if (!monthMap[month]) monthMap[month] = { total: 0, count: 0 };
     monthMap[month].total += e.amount;
     monthMap[month].count += 1;
+    if (!monthCategoryMap[month]) monthCategoryMap[month] = {};
+    monthCategoryMap[month][e.category as Category] = (monthCategoryMap[month][e.category as Category] ?? 0) + e.amount;
     categoryTotals[e.category as Category] = (categoryTotals[e.category as Category] ?? 0) + e.amount;
     grandTotal += e.amount;
-    if (e.split) splitTotal += e.amount;
   }
 
   for (const [month, stat] of Object.entries(monthMap)) {
-    monthStats.push({ month, ...stat });
+    const catEntries = Object.entries(monthCategoryMap[month] ?? {}) as [Category, number][];
+    const topCategory = catEntries.sort((a, b) => b[1] - a[1])[0]?.[0];
+    monthStats.push({ month, ...stat, topCategory });
   }
   monthStats.sort((a, b) => a.month.localeCompare(b.month));
 
-  return { monthStats, categoryTotals, grandTotal, splitTotal, loading };
+  return { monthStats, categoryTotals, grandTotal, loading };
 }

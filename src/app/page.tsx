@@ -14,11 +14,17 @@ import { AuthGate } from "@/components/AuthGate";
 import { AddUserDialog } from "@/components/AddUserDialog";
 import { ManagePayersDialog } from "@/components/ManagePayersDialog";
 import { HouseholdBalance } from "@/components/HouseholdBalance";
+import { AIInsightsCard } from "@/components/AIInsightsCard";
 import { RecordPaymentDialog } from "@/components/RecordPaymentDialog";
+import { BudgetProgressCard } from "@/components/BudgetProgressCard";
+import { ManageBudgetsDialog } from "@/components/ManageBudgetsDialog";
+import { RecurringBanner } from "@/components/RecurringBanner";
+import { CleanDataDialog } from "@/components/CleanDataDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useExpenses } from "@/hooks/useExpenses";
 import { usePayers } from "@/hooks/usePayers";
 import { usePayments } from "@/hooks/usePayments";
+import { useBudgets } from "@/hooks/useBudgets";
 import { Expense, Category } from "@/types/expense";
 import { Loader2 } from "lucide-react";
 
@@ -47,10 +53,21 @@ function TrackerApp({ userId }: { userId: string }) {
   const [addUserOpen, setAddUserOpen] = useState(false);
   const [managePayersOpen, setManagePayersOpen] = useState(false);
   const [recordPaymentPayerId, setRecordPaymentPayerId] = useState<string | null>(null);
+  const [manageBudgetsOpen, setManageBudgetsOpen] = useState(false);
+  const [cleanDataOpen, setCleanDataOpen] = useState(false);
 
   const { expenses, loading, addExpense, updateExpense, deleteExpense } = useExpenses(currentMonth, userId);
   const { payers, addPayer, deletePayer } = usePayers(userId);
   const { payments, addPayment, deletePayment } = usePayments(currentMonth, userId);
+  const { budgets, setBudget, deleteBudget } = useBudgets(userId);
+
+  // Fetch previous month's recurring expenses for RecurringBanner
+  const prevMonth = (() => {
+    const [y, m] = currentMonth.split("-").map(Number);
+    const d = new Date(y, m - 2, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  })();
+  const { expenses: prevMonthExpenses } = useExpenses(prevMonth, userId);
   const total = useMemo(() => expenses.reduce((s, e) => s + e.amount, 0), [expenses]);
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<Category | null>(null);
 
@@ -69,6 +86,10 @@ function TrackerApp({ userId }: { userId: string }) {
     editingExpense ? updateExpense(editingExpense.id, data) : addExpense(data);
   }
 
+  async function handleAddRecurring(exps: Omit<Expense, "id">[]) {
+    for (const e of exps) await addExpense(e);
+  }
+
   function handleMonthClick(month: string) {
     setCurrentMonth(month);
     setView("month");
@@ -83,6 +104,7 @@ function TrackerApp({ userId }: { userId: string }) {
         onMonthChange={handleMonthClick}
         onAddUser={() => setAddUserOpen(true)}
         onManagePayers={() => setManagePayersOpen(true)}
+        onCleanData={() => setCleanDataOpen(true)}
       />
 
       <SidebarInset className="flex flex-col min-h-svh bg-muted/30">
@@ -106,7 +128,21 @@ function TrackerApp({ userId }: { userId: string }) {
             </div>
           ) : (
             <>
-              <StatsCards expenses={expenses} />
+              {isCurrentMonth && (
+                <RecurringBanner
+                  currentMonth={currentMonth}
+                  currentExpenses={expenses}
+                  prevMonthExpenses={prevMonthExpenses}
+                  onAddRecurring={handleAddRecurring}
+                />
+              )}
+              <StatsCards expenses={expenses} currentMonth={currentMonth} />
+              <AIInsightsCard expenses={expenses} month={currentMonth} />
+              <BudgetProgressCard
+                expenses={expenses}
+                budgets={budgets}
+                onManageBudgets={() => setManageBudgetsOpen(true)}
+              />
               <Card className="border-0 shadow-sm">
                 <CardHeader className="pb-2 pt-5">
                   <CardTitle className="text-sm font-semibold">Household Balance</CardTitle>
@@ -147,6 +183,7 @@ function TrackerApp({ userId }: { userId: string }) {
                     expenses={expenses}
                     onEdit={openEdit}
                     onDelete={deleteExpense}
+                    onUpdate={updateExpense}
                     filterCategory={activeCategoryFilter}
                     onClearCategoryFilter={() => setActiveCategoryFilter(null)}
                   />
@@ -172,6 +209,17 @@ function TrackerApp({ userId }: { userId: string }) {
         onAdd={addPayer}
         onDelete={deletePayer}
       />
+      <ManageBudgetsDialog
+        open={manageBudgetsOpen}
+        onClose={() => setManageBudgetsOpen(false)}
+        budgets={budgets}
+        onSet={setBudget}
+        onDelete={deleteBudget}
+      />
+      <CleanDataDialog
+        open={cleanDataOpen}
+        onClose={() => setCleanDataOpen(false)}
+      />
       {recordingPayer && (
         <RecordPaymentDialog
           open={!!recordPaymentPayerId}
@@ -180,7 +228,7 @@ function TrackerApp({ userId }: { userId: string }) {
           payerColor={recordingPayer.color}
           defaultDate={defaultDate}
           remaining={
-            expenses.filter((e) => e.split).reduce((s, e) => s + e.amount, 0) / 2 -
+            expenses.reduce((s, e) => s + e.amount, 0) / payers.length -
             payments.filter((p) => p.payer_id === recordingPayer.id).reduce((s, p) => s + p.amount, 0)
           }
           onSave={(data) =>

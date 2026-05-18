@@ -12,11 +12,11 @@ export function useExpenses(month: MonthKey, userId: string) {
   const from = `${month}-01`;
   const to = new Date(year, mon, 0).toISOString().slice(0, 10); // last day of month
 
-  const fetchExpenses = useCallback(async () => {
-    setLoading(true);
+  const fetchExpenses = useCallback(async (showLoading = false) => {
+    if (showLoading) setLoading(true);
     const { data } = await supabase
       .from("expenses")
-      .select("id, description, amount, category, date, split")
+      .select("id, description, amount, category, date, split, is_recurring")
       .eq("user_id", userId)
       .gte("date", from)
       .lte("date", to)
@@ -27,7 +27,7 @@ export function useExpenses(month: MonthKey, userId: string) {
   }, [userId, from, to]);
 
   useEffect(() => {
-    fetchExpenses();
+    fetchExpenses(true);
   }, [fetchExpenses]);
 
   // Real-time sync across devices
@@ -55,17 +55,17 @@ export function useExpenses(month: MonthKey, userId: string) {
       user_id: userId,
       id: crypto.randomUUID(),
     });
-    await fetchExpenses();
+    await fetchExpenses(false);
   }, [userId, fetchExpenses]);
 
   const updateExpense = useCallback(async (id: string, updates: Omit<Expense, "id">) => {
     await supabase.from("expenses").update(updates).eq("id", id).eq("user_id", userId);
-    await fetchExpenses();
+    await fetchExpenses(false);
   }, [userId, fetchExpenses]);
 
   const deleteExpense = useCallback(async (id: string) => {
     await supabase.from("expenses").delete().eq("id", id).eq("user_id", userId);
-    await fetchExpenses();
+    await fetchExpenses(false);
   }, [userId, fetchExpenses]);
 
   return { expenses, loading, addExpense, updateExpense, deleteExpense };

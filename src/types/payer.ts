@@ -3,6 +3,7 @@ export interface Payer {
   name: string;
   color: string;
   is_owner: boolean;
+  linked_user_id?: string | null;
 }
 
 export interface Payment {

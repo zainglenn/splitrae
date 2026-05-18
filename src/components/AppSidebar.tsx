@@ -19,7 +19,7 @@ import {
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, CalendarRange, CalendarDays, LayoutDashboard, Wallet, LogOut, UserPlus, Users, Sparkles, ShieldCheck } from "lucide-react";
+import { ChevronRight, CalendarRange, CalendarDays, LayoutDashboard, Wallet, LogOut, Users, Sparkles, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 
@@ -55,18 +55,20 @@ function getYearMonthMap(): Record<string, string[]> {
   return map;
 }
 
-export type AppView = "dashboard" | "month" | "clean-data" | "add-user" | "manage-payers" | "manage-budgets" | "admin";
+export type AppView = "dashboard" | "month" | "clean-data" | "manage-payers" | "manage-budgets" | "admin";
 
 interface Props {
   view: AppView;
   onViewChange: (view: AppView) => void;
   currentMonth: string;
   onMonthChange: (month: string) => void;
+  userId: string;
+  isGuest?: boolean;
 }
 
-export function AppSidebar({ view, onViewChange, currentMonth, onMonthChange }: Props) {
+export function AppSidebar({ view, onViewChange, currentMonth, onMonthChange, userId, isGuest }: Props) {
   const { user, signOut } = useAuth();
-  const { isAdmin } = useProfile(user?.id ?? null);
+  const { isAdmin } = useProfile(userId);
   const { setOpenMobile } = useSidebar();
   const yearMonthMap = getYearMonthMap();
   const years = Object.keys(yearMonthMap).sort((a, b) => Number(b) - Number(a));
@@ -182,30 +184,32 @@ export function AppSidebar({ view, onViewChange, currentMonth, onMonthChange }: 
           </SidebarMenu>
         </SidebarGroup>
 
-        {/* Settings */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Settings</SidebarGroupLabel>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton isActive={view === "manage-payers"} onClick={() => nav("manage-payers")} tooltip="Manage Payers">
-                <Users className="h-4 w-4 shrink-0" />
-                <span>Manage Payers</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton isActive={view === "manage-budgets"} onClick={() => nav("manage-budgets")} tooltip="Manage Budgets">
-                <LayoutDashboard className="h-4 w-4 shrink-0" />
-                <span>Budgets</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton isActive={view === "clean-data"} onClick={() => nav("clean-data")} tooltip="AI Advisor">
-                <Sparkles className="h-4 w-4 shrink-0" />
-                <span>AI Advisor</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroup>
+        {/* Settings — hidden for guest/linked users */}
+        {!isGuest && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Settings</SidebarGroupLabel>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton isActive={view === "manage-payers"} onClick={() => nav("manage-payers")} tooltip="Manage Payers">
+                  <Users className="h-4 w-4 shrink-0" />
+                  <span>Manage Payers</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton isActive={view === "manage-budgets"} onClick={() => nav("manage-budgets")} tooltip="Manage Budgets">
+                  <LayoutDashboard className="h-4 w-4 shrink-0" />
+                  <span>Budgets</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton isActive={view === "clean-data"} onClick={() => nav("clean-data")} tooltip="AI Advisor">
+                  <Sparkles className="h-4 w-4 shrink-0" />
+                  <span>AI Advisor</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
+        )}
 
         {/* Admin (only shown to admins) */}
         {isAdmin && (
@@ -216,12 +220,6 @@ export function AppSidebar({ view, onViewChange, currentMonth, onMonthChange }: 
                 <SidebarMenuButton isActive={view === "admin"} onClick={() => nav("admin")} tooltip="Users">
                   <ShieldCheck className="h-4 w-4 shrink-0" />
                   <span>Users</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton isActive={view === "add-user"} onClick={() => nav("add-user")} tooltip="Add User">
-                  <UserPlus className="h-4 w-4 shrink-0" />
-                  <span>Add User</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>

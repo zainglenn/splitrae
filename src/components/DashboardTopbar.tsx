@@ -11,17 +11,17 @@ interface Props {
   monthLabel: string;
   year: number;
   onAddExpense: () => void;
+  isGuest?: boolean;
 }
 
 const VIEW_TITLES: Record<string, string> = {
   "clean-data": "AI Advisor",
-  "add-user": "Add User",
   "manage-payers": "Manage Payers",
   "manage-budgets": "Budgets",
   "admin": "Users",
 };
 
-export function DashboardTopbar({ view, monthLabel, year, onAddExpense }: Props) {
+export function DashboardTopbar({ view, monthLabel, year, onAddExpense, isGuest }: Props) {
   const title =
     view === "dashboard" ? `${year} Overview` :
     view === "month" ? monthLabel :
@@ -32,7 +32,7 @@ export function DashboardTopbar({ view, monthLabel, year, onAddExpense }: Props)
       <SidebarTrigger className="-ml-1" />
       <Separator orientation="vertical" className="h-5" />
       <span className="font-semibold text-sm flex-1 truncate">{title}</span>
-      {view === "month" && (
+      {view === "month" && !isGuest && (
         <Button size="sm" className="gap-1.5 h-8" onClick={onAddExpense}>
           <Plus className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Add Expense</span>

@@ -70,3 +70,55 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ id: data.user.id, email: data.user.email, role });
 }
+
+// Reset password or update role
+export async function PATCH(req: NextRequest) {
+  const caller = await getCallerUser(req);
+  if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!await isAdmin(caller.id)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const body = await req.json();
+  const { userId } = body;
+  if (!userId) return NextResponse.json({ error: "userId is required" }, { status: 400 });
+
+  // Role update
+  if (body.role !== undefined) {
+    const validRoles = ["read", "write", "admin"];
+    if (!validRoles.includes(body.role)) {
+      return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+    }
+    const { error } = await adminClient
+      .from("profiles")
+      .upsert({ id: userId, role: body.role }, { onConflict: "id" });
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ success: true });
+  }
+
+  // Password reset
+  const { password } = body;
+  if (!password) return NextResponse.json({ error: "password or role is required" }, { status: 400 });
+
+  const { error } = await adminClient.auth.admin.updateUserById(userId, { password });
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  return NextResponse.json({ success: true });
+}
+
+// Delete user
+export async function DELETE(req: NextRequest) {
+  const caller = await getCallerUser(req);
+  if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!await isAdmin(caller.id)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const { userId } = await req.json();
+  if (!userId) return NextResponse.json({ error: "userId is required" }, { status: 400 });
+  // Prevent self-deletion
+  if (userId === caller.id) return NextResponse.json({ error: "Cannot delete your own account" }, { status: 400 });
+
+  const { error } = await adminClient.auth.admin.deleteUser(userId);
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  await adminClient.from("profiles").delete().eq("id", userId);
+
+  return NextResponse.json({ success: true });
+}

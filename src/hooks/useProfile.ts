@@ -27,5 +27,10 @@ export function useProfile(userId: string | null) {
       });
   }, [userId]);
 
-  return { profile, loading, isAdmin: profile?.role === "admin" };
+  return {
+    profile,
+    loading,
+    isAdmin: profile?.role === "admin",
+    isReadOnly: profile?.role === "read",
+  };
 }

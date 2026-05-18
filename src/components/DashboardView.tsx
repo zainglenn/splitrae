@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
+import { usePayerYearlyBalance } from "@/hooks/usePayerYearlyBalance";
 import { CATEGORY_META, Category } from "@/types/expense";
 import {
   Loader2,
@@ -10,13 +11,15 @@ import {
   TrendingDown,
   Minus,
   Flame,
-  BarChart3,
   Activity,
+  Wallet,
 } from "lucide-react";
 
 interface Props {
   userId: string;
   year: number;
+  myPayerId: string | null;
+  numPayers: number;
   onMonthClick: (month: string) => void;
 }
 
@@ -49,8 +52,9 @@ function getBarColor(total: number, avg: number): string {
   return "#ef4444";
 }
 
-export function DashboardView({ userId, year, onMonthClick }: Props) {
+export function DashboardView({ userId, year, myPayerId, numPayers, onMonthClick }: Props) {
   const { monthStats, categoryTotals, grandTotal, loading } = useDashboardStats(userId, year);
+  const yearlyBalance = usePayerYearlyBalance(userId, myPayerId, numPayers, year);
 
   if (loading) {
     return (
@@ -156,14 +160,35 @@ export function DashboardView({ userId, year, onMonthClick }: Props) {
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-sm">
+        <Card className={`border-0 shadow-sm ${myPayerId && yearlyBalance.balance > 0 ? "ring-1 ring-rose-200 dark:ring-rose-900" : ""}`}>
           <CardHeader className="pb-1 pt-5 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Your Half</CardTitle>
-            <Users className="h-4 w-4 text-blue-500" />
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {myPayerId ? "You Owe" : "Your Share"}
+            </CardTitle>
+            <Wallet className={`h-4 w-4 ${myPayerId && yearlyBalance.balance > 0 ? "text-rose-500" : "text-blue-500"}`} />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl sm:text-3xl font-bold tabular-nums">{fmt.format(grandTotal / 2)}</p>
-            <p className="text-xs text-muted-foreground mt-1">50% of {fmt.format(grandTotal)}</p>
+            {myPayerId ? (
+              <>
+                <p className={`text-2xl sm:text-3xl font-bold tabular-nums ${yearlyBalance.balance > 0 ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                  {fmt.format(Math.abs(yearlyBalance.balance))}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {yearlyBalance.balance > 0
+                    ? `${fmt.format(yearlyBalance.share)} share · ${fmt.format(yearlyBalance.paid)} paid`
+                    : yearlyBalance.balance < 0
+                    ? `overpaid by ${fmt.format(Math.abs(yearlyBalance.balance))}`
+                    : "fully settled"}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-2xl sm:text-3xl font-bold tabular-nums">{fmt.format(grandTotal / (numPayers || 2))}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {numPayers > 0 ? `1/${numPayers} of ${fmt.format(grandTotal)}` : `50% of ${fmt.format(grandTotal)}`}
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

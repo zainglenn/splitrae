@@ -10,33 +10,32 @@ export function usePayers(userId: string) {
 
   const fetchPayers = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("payers")
-      .select("id, name, color, is_owner")
+      .select("id, name, color, is_owner, linked_user_id")
       .eq("user_id", userId)
       .order("is_owner", { ascending: false }) // owner always first
       .order("created_at");
-    const list = (data as Payer[]) ?? [];
 
-    // Auto-create the owner payer on first use
-    if (!list.some((p) => p.is_owner)) {
+    // Only auto-create owner payer when the fetch succeeded with no owner present
+    if (!error && data !== null && !data.some((p: Payer) => p.is_owner)) {
       await supabase.from("payers").insert({
         id: crypto.randomUUID(),
         user_id: userId,
         name: "You",
         color: "#6366f1",
         is_owner: true,
+        linked_user_id: userId,
       });
-      // Re-fetch after creating
       const { data: refreshed } = await supabase
         .from("payers")
-        .select("id, name, color, is_owner")
+        .select("id, name, color, is_owner, linked_user_id")
         .eq("user_id", userId)
         .order("is_owner", { ascending: false })
         .order("created_at");
       setPayers((refreshed as Payer[]) ?? []);
-    } else {
-      setPayers(list);
+    } else if (!error && data !== null) {
+      setPayers(data as Payer[]);
     }
     setLoading(false);
   }, [userId]);
@@ -58,5 +57,15 @@ export function usePayers(userId: string) {
     await fetchPayers();
   }, [userId, fetchPayers]);
 
-  return { payers, loading, addPayer, deletePayer };
+  const linkPayer = useCallback(async (payerId: string, linkedUserId: string) => {
+    await supabase.from("payers").update({ linked_user_id: linkedUserId }).eq("id", payerId).eq("user_id", userId);
+    await fetchPayers();
+  }, [userId, fetchPayers]);
+
+  const unlinkPayer = useCallback(async (payerId: string) => {
+    await supabase.from("payers").update({ linked_user_id: null }).eq("id", payerId).eq("user_id", userId);
+    await fetchPayers();
+  }, [userId, fetchPayers]);
+
+  return { payers, loading, addPayer, deletePayer, linkPayer, unlinkPayer };
 }

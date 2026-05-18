@@ -29,9 +29,9 @@ interface NormalizeCorrection {
 
 interface Props {
   expenses: Expense[];
-  onEdit: (expense: Expense) => void;
-  onDelete: (id: string) => void;
-  onUpdate: (id: string, updates: Omit<Expense, "id">) => void;
+  onEdit?: (expense: Expense) => void;
+  onDelete?: (id: string) => void;
+  onUpdate?: (id: string, updates: Omit<Expense, "id">) => void;
   filterCategory?: Category | null;
   onClearCategoryFilter?: () => void;
 }
@@ -107,7 +107,7 @@ export function ExpenseList({ expenses, onEdit, onDelete, onUpdate, filterCatego
     for (const correction of corrections) {
       const original = expenses.find((e) => e.id === correction.id);
       if (!original) continue;
-      onUpdate(correction.id, {
+      onUpdate?.(correction.id, {
         description: correction.description ?? original.description,
         amount: original.amount,
         category: (correction.category as Category) ?? original.category,
@@ -348,28 +348,34 @@ export function ExpenseList({ expenses, onEdit, onDelete, onUpdate, filterCatego
                     <TableCell className="text-right font-semibold tabular-nums text-slate-800 whitespace-nowrap align-top pt-3">
                       {fmt.format(expense.amount)}
                     </TableCell>
-                    <TableCell className="align-top pt-1">
-                      <div className="flex gap-0.5 justify-end">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-9 w-9 text-slate-400 hover:text-primary hover:bg-accent"
-                          onClick={() => onEdit(expense)}
-                          aria-label="Edit"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-9 w-9 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-                          onClick={() => onDelete(expense.id)}
-                          aria-label="Delete"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+                    {(onEdit || onDelete) && (
+                      <TableCell className="align-top pt-1">
+                        <div className="flex gap-0.5 justify-end">
+                          {onEdit && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-9 w-9 text-slate-400 hover:text-primary hover:bg-accent"
+                              onClick={() => onEdit(expense)}
+                              aria-label="Edit"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {onDelete && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-9 w-9 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                              onClick={() => onDelete(expense.id)}
+                              aria-label="Delete"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
                   </TableRow>
                 );
               })

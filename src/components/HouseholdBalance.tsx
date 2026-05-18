@@ -12,9 +12,9 @@ interface Props {
   payments: Payment[];
   month: string;
   defaultDate: string;
-  onRecordPayment: (payerId: string) => void;
-  onDeletePayment: (id: string) => void;
-  onManagePayers: () => void;
+  onRecordPayment?: (payerId: string) => void;
+  onDeletePayment?: (id: string) => void;
+  onManagePayers?: () => void;
 }
 
 const fmt = new Intl.NumberFormat("en-AE", {
@@ -123,15 +123,17 @@ export function HouseholdBalance({
                   Owed {fmt.format(owedPerPayer)} · Paid {fmt.format(totalPaid)}
                 </p>
                 <div className="flex items-center gap-1">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 text-xs gap-1"
-                    onClick={() => onRecordPayment(payer.id)}
-                  >
-                    <Plus className="h-3 w-3" />
-                    Pay
-                  </Button>
+                  {onRecordPayment && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs gap-1"
+                      onClick={() => onRecordPayment(payer.id)}
+                    >
+                      <Plus className="h-3 w-3" />
+                      Pay
+                    </Button>
+                  )}
                   {payerPayments.length > 0 && (
                     <Button
                       size="icon"
@@ -165,15 +167,17 @@ export function HouseholdBalance({
                       </div>
                       <p className="text-xs text-slate-400 mt-0.5">{formatDate(payment.date)}</p>
                     </div>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-9 w-9 text-slate-300 hover:text-rose-500 hover:bg-rose-50 shrink-0"
-                      onClick={() => onDeletePayment(payment.id)}
-                      aria-label="Delete payment"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    {onDeletePayment && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-9 w-9 text-slate-300 hover:text-rose-500 hover:bg-rose-50 shrink-0"
+                        onClick={() => onDeletePayment(payment.id)}
+                        aria-label="Delete payment"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>

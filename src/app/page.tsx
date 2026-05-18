@@ -219,7 +219,6 @@ function TrackerApp({ userId }: { userId: string }) {
                     expenses={expenses}
                     onEdit={isReadOnly ? undefined : openEdit}
                     onDelete={isReadOnly ? undefined : deleteExpense}
-                    onUpdate={isReadOnly ? undefined : updateExpense}
                     filterCategory={activeCategoryFilter}
                     onClearCategoryFilter={() => setActiveCategoryFilter(null)}
                   />

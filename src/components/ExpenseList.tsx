@@ -12,26 +12,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Pencil, Trash2, Receipt, ArrowUpDown, ArrowUp, ArrowDown, X, Sparkles, RefreshCw, Loader2, CheckCircle2 } from "lucide-react";
-
-interface NormalizeCorrection {
-  id: string;
-  description?: string;
-  category?: string;
-}
+import { Pencil, Trash2, Receipt, ArrowUpDown, ArrowUp, ArrowDown, X, RefreshCw } from "lucide-react";
 
 interface Props {
   expenses: Expense[];
   onEdit?: (expense: Expense) => void;
   onDelete?: (id: string) => void;
-  onUpdate?: (id: string, updates: Omit<Expense, "id">) => void;
   filterCategory?: Category | null;
   onClearCategoryFilter?: () => void;
 }
@@ -59,14 +45,10 @@ function SortIcon({ col, active, dir }: { col: string; active: boolean; dir: Sor
     : <ArrowDown className="h-3.5 w-3.5" />;
 }
 
-export function ExpenseList({ expenses, onEdit, onDelete, onUpdate, filterCategory, onClearCategoryFilter }: Props) {
+export function ExpenseList({ expenses, onEdit, onDelete, filterCategory, onClearCategoryFilter }: Props) {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
-  const [normalizing, setNormalizing] = useState(false);
-  const [corrections, setCorrections] = useState<NormalizeCorrection[]>([]);
-  const [normalizeOpen, setNormalizeOpen] = useState(false);
-  const [normalizeClean, setNormalizeClean] = useState(false);
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) {
@@ -75,49 +57,6 @@ export function ExpenseList({ expenses, onEdit, onDelete, onUpdate, filterCatego
       setSortKey(key);
       setSortDir(key === "date" ? "desc" : "asc");
     }
-  }
-
-  async function handleNormalize() {
-    setNormalizing(true);
-    try {
-      const res = await fetch("/api/ai/normalize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          expenses: expenses.map((e) => ({ id: e.id, description: e.description, category: e.category })),
-        }),
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      if (data.corrections && data.corrections.length > 0) {
-        setCorrections(data.corrections);
-        setNormalizeOpen(true);
-      } else {
-        setNormalizeClean(true);
-        setTimeout(() => setNormalizeClean(false), 3000);
-      }
-    } catch {
-      // silently ignore
-    } finally {
-      setNormalizing(false);
-    }
-  }
-
-  function applyCorrections() {
-    for (const correction of corrections) {
-      const original = expenses.find((e) => e.id === correction.id);
-      if (!original) continue;
-      onUpdate?.(correction.id, {
-        description: correction.description ?? original.description,
-        amount: original.amount,
-        category: (correction.category as Category) ?? original.category,
-        date: original.date,
-        split: original.split,
-        is_recurring: original.is_recurring,
-      });
-    }
-    setNormalizeOpen(false);
-    setCorrections([]);
   }
 
   const filtered = useMemo(() => {
@@ -153,50 +92,6 @@ export function ExpenseList({ expenses, onEdit, onDelete, onUpdate, filterCatego
 
   return (
     <div className="space-y-3">
-      {/* Normalize preview dialog */}
-      <Dialog open={normalizeOpen} onOpenChange={(v) => !v && setNormalizeOpen(false)}>
-        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-semibold">AI Suggested Corrections</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground -mt-1 mb-2">
-            Review the suggested changes. Only highlighted fields will be updated.
-          </p>
-          <div className="space-y-2">
-            {corrections.map((c) => {
-              const original = expenses.find((e) => e.id === c.id);
-              if (!original) return null;
-              return (
-                <div key={c.id} className="rounded-lg border p-3 space-y-1 text-sm">
-                  {c.description && c.description !== original.description && (
-                    <div className="flex gap-2 items-start">
-                      <span className="text-muted-foreground w-20 flex-shrink-0">Name</span>
-                      <span className="line-through text-slate-400 truncate">{original.description}</span>
-                      <span className="text-slate-400">→</span>
-                      <span className="font-medium text-slate-800 truncate">{c.description}</span>
-                    </div>
-                  )}
-                  {c.category && c.category !== original.category && (
-                    <div className="flex gap-2 items-start">
-                      <span className="text-muted-foreground w-20 flex-shrink-0">Category</span>
-                      <span className="line-through text-slate-400">{original.category}</span>
-                      <span className="text-slate-400">→</span>
-                      <span className="font-medium text-slate-800">{c.category}</span>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          <DialogFooter className="gap-2 pt-2">
-            <Button variant="outline" onClick={() => setNormalizeOpen(false)}>Cancel</Button>
-            <Button onClick={applyCorrections} className="bg-primary hover:bg-primary/90">
-              Apply {corrections.length} {corrections.length === 1 ? "change" : "changes"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Filters row */}
       <div className="space-y-2">
         <div className="flex gap-2">
@@ -206,24 +101,6 @@ export function ExpenseList({ expenses, onEdit, onDelete, onUpdate, filterCatego
             onChange={(e) => setSearch(e.target.value)}
             className="h-10 text-base flex-1"
           />
-          <Button
-            variant="outline"
-            size="sm"
-            className={`h-10 gap-1.5 flex-shrink-0 transition-colors ${normalizeClean ? "text-emerald-700 border-emerald-200 hover:bg-emerald-50" : "text-violet-700 border-violet-200 hover:bg-violet-50"}`}
-            onClick={handleNormalize}
-            disabled={normalizing}
-          >
-            {normalizing ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : normalizeClean ? (
-              <CheckCircle2 className="h-3.5 w-3.5" />
-            ) : (
-              <Sparkles className="h-3.5 w-3.5" />
-            )}
-            <span className="hidden sm:inline">
-              {normalizing ? "Analyzing…" : normalizeClean ? "All clean!" : "Normalize"}
-            </span>
-          </Button>
         </div>
         {(filterCategory || search) && (
           <div className="flex items-center gap-2 flex-wrap">

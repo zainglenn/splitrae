@@ -74,23 +74,26 @@ export function ImportExpensesPage({ userId, currentMonth, onNavigateToMonth }: 
   );
 
   async function handleAdd() {
-    const bad = new Set(
-      staged
-        .filter((r) => !r.description.trim() || r.amount === "" || Number(r.amount) <= 0)
-        .map((r) => r._id)
+    const rowsToAdd = staged.filter(
+      (r) => r.description.trim() && r.amount !== "" && Number(r.amount) > 0
     );
 
-    if (bad.size > 0) {
-      setInvalidIds(bad);
-      return;
-    }
+    // Flag rows that have partial content but are still invalid
+    const bad = new Set(
+      staged
+        .filter((r) => (r.description.trim() || r.amount !== "") &&
+          (!r.description.trim() || r.amount === "" || Number(r.amount) <= 0))
+        .map((r) => r._id)
+    );
+    setInvalidIds(bad);
 
-    setInvalidIds(new Set());
+    if (rowsToAdd.length === 0) return;
+
     setAdding(true);
     setSuccessCount(null);
 
     try {
-      for (const row of staged) {
+      for (const row of rowsToAdd) {
         await addExpense({
           description: row.description.trim(),
           amount: Number(row.amount),
@@ -99,9 +102,9 @@ export function ImportExpensesPage({ userId, currentMonth, onNavigateToMonth }: 
           split: true,
         });
       }
-      const count = staged.length;
-      setStaged([]);
-      setSuccessCount(count);
+      const addedIds = new Set(rowsToAdd.map((r) => r._id));
+      setStaged((prev) => prev.filter((r) => !addedIds.has(r._id)));
+      setSuccessCount(rowsToAdd.length);
       setTimeout(() => {
         onNavigateToMonth(targetMonth);
       }, 1200);
@@ -201,12 +204,12 @@ export function ImportExpensesPage({ userId, currentMonth, onNavigateToMonth }: 
           ) : (
             <Button
               onClick={handleAdd}
-              disabled={adding || staged.length === 0}
+              disabled={adding || validRows.length === 0}
               size="sm"
               className="gap-1.5"
             >
               {adding && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              Add {staged.length} expense{staged.length !== 1 ? "s" : ""}
+              Add {validRows.length} expense{validRows.length !== 1 ? "s" : ""}
             </Button>
           )}
         </div>

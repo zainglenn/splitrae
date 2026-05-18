@@ -16,6 +16,9 @@ interface Props {
 
 export function StagingTable({ rows, onChange, invalidIds }: Props) {
   const categorizingRef = useRef<Set<string>>(new Set());
+  // Keep a live ref so async callbacks always see the latest rows
+  const rowsRef = useRef(rows);
+  rowsRef.current = rows;
 
   function update(id: string, patch: Partial<StagedExpense>) {
     onChange(rows.map((r) => (r._id === id ? { ...r, ...patch } : r)));
@@ -39,7 +42,7 @@ export function StagingTable({ rows, onChange, invalidIds }: Props) {
         const { category } = await res.json();
         // Only apply if still "Other" (user may have changed it while waiting)
         onChange(
-          rows.map((r) =>
+          rowsRef.current.map((r) =>
             r._id === row._id && r.category === "Other" ? { ...r, category } : r
           )
         );

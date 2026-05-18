@@ -23,6 +23,7 @@ const VIEW_TITLES: Record<string, string> = {
   "manage-payers": "Manage Payers",
   "manage-budgets": "Budgets",
   "admin": "Users",
+  "import-expenses": "Import",
 };
 
 function toMonthKey(date: Date) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { CheckCheck, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -57,7 +57,13 @@ function blankRow(): StagedExpense {
 export function ImportExpensesPage({ userId, currentMonth, onNavigateToMonth }: Props) {
   const [tab, setTab] = useState<Tab>("manual");
   const [targetMonth, setTargetMonth] = useState(currentMonth);
-  const [manualStaged, setManualStaged] = useState<StagedExpense[]>([blankRow(), blankRow(), blankRow()]);
+  // Empty on server; populated client-side to avoid SSR hydration mismatch
+  // (crypto.randomUUID and new Date() differ between server and client)
+  const [manualStaged, setManualStaged] = useState<StagedExpense[]>([]);
+
+  useEffect(() => {
+    setManualStaged([blankRow(), blankRow(), blankRow()]);
+  }, []);
   const [screenshotStaged, setScreenshotStaged] = useState<StagedExpense[]>([]);
   const [adding, setAdding] = useState(false);
   const [invalidIds, setInvalidIds] = useState<Set<string>>(new Set());

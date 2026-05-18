@@ -87,9 +87,12 @@ export async function PATCH(req: NextRequest) {
     if (!validRoles.includes(body.role)) {
       return NextResponse.json({ error: "Invalid role" }, { status: 400 });
     }
+    // Fetch email so upsert satisfies NOT NULL constraint when creating a new profile row
+    const { data: authUser } = await adminClient.auth.admin.getUserById(userId);
+    const email = authUser?.user?.email ?? "";
     const { error } = await adminClient
       .from("profiles")
-      .upsert({ id: userId, role: body.role }, { onConflict: "id" });
+      .upsert({ id: userId, email, role: body.role }, { onConflict: "id" });
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
     return NextResponse.json({ success: true });
   }

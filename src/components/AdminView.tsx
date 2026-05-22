@@ -15,6 +15,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { CreateAdminDialog } from "@/components/CreateAdminDialog";
+import { PageContainer } from "@/components/PageContainer";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Select,
   SelectContent,
@@ -104,7 +106,7 @@ export function AdminView({ userId }: Props) {
   }
 
   return (
-    <div className="space-y-5">
+    <PageContainer>
       <PageSection title="Users" description="All registered accounts in this workspace.">
         <div className="space-y-3">
           <div className="flex justify-end gap-2">
@@ -125,21 +127,21 @@ export function AdminView({ userId }: Props) {
           ) : users.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-10">No users found.</p>
           ) : (
-            <div className="rounded-lg border overflow-hidden">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/40">
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">User</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden sm:table-cell">Role</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">Joined</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">Last Sign In</th>
-                    <th className="px-4 py-3" />
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
+            <div className="rounded-xl border overflow-hidden overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="">
+                    <TableHead>User</TableHead>
+                    <TableHead className="hidden sm:table-cell w-[130px]">Role</TableHead>
+                    <TableHead className="hidden md:table-cell w-[120px]">Joined</TableHead>
+                    <TableHead className="hidden lg:table-cell w-[140px]">Last Sign In</TableHead>
+                    <TableHead className="w-[80px]" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {users.map((u) => (
-                    <tr key={u.id} className="hover:bg-muted/20 transition-colors">
-                      <td className="px-4 py-3">
+                    <TableRow key={u.id}>
+                      <TableCell>
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
                             {u.role === "admin"
@@ -153,14 +155,8 @@ export function AdminView({ userId }: Props) {
                               {u.id === userId ? (
                                 <RoleBadge role={u.role} />
                               ) : (
-                                <Select
-                                  value={u.role}
-                                  onValueChange={(val) => val && handleRoleChange(u.id, val)}
-                                  disabled={roleLoading === u.id}
-                                >
-                                  <SelectTrigger className="h-6 text-xs w-24">
-                                    <SelectValue />
-                                  </SelectTrigger>
+                                <Select value={u.role} onValueChange={(val) => val && handleRoleChange(u.id, val)} disabled={roleLoading === u.id}>
+                                  <SelectTrigger className="h-6 text-xs w-24"><SelectValue /></SelectTrigger>
                                   <SelectContent>
                                     <SelectItem value="read">read</SelectItem>
                                     <SelectItem value="write">write</SelectItem>
@@ -174,8 +170,8 @@ export function AdminView({ userId }: Props) {
                             <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">you</Badge>
                           )}
                         </div>
-                      </td>
-                      <td className="px-4 py-3 hidden sm:table-cell">
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         {u.id === userId ? (
                           <RoleBadge role={u.role} />
                         ) : (
@@ -183,14 +179,8 @@ export function AdminView({ userId }: Props) {
                             {roleLoading === u.id && (
                               <Loader2 className="absolute right-8 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-muted-foreground z-10 pointer-events-none" />
                             )}
-                            <Select
-                              value={u.role}
-                              onValueChange={(val) => val && handleRoleChange(u.id, val)}
-                              disabled={roleLoading === u.id}
-                            >
-                              <SelectTrigger className="h-7 text-xs">
-                                <SelectValue />
-                              </SelectTrigger>
+                            <Select value={u.role} onValueChange={(val) => val && handleRoleChange(u.id, val)} disabled={roleLoading === u.id}>
+                              <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="read">read</SelectItem>
                                 <SelectItem value="write">write</SelectItem>
@@ -199,45 +189,30 @@ export function AdminView({ userId }: Props) {
                             </Select>
                           </div>
                         )}
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{formatDate(u.created_at)}</td>
-                      <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">{formatDate(u.last_sign_in_at)}</td>
-                      <td className="px-4 py-3">
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-muted-foreground">{formatDate(u.created_at)}</TableCell>
+                      <TableCell className="hidden lg:table-cell text-muted-foreground">{formatDate(u.last_sign_in_at)}</TableCell>
+                      <TableCell>
                         <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                            title="Reset password"
-                            onClick={() => setResetTarget(u)}
-                          >
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" title="Reset password" onClick={() => setResetTarget(u)}>
                             <KeyRound className="h-3.5 w-3.5" />
                           </Button>
                           {u.id !== userId && (
                             <Button
-                              variant="ghost"
-                              size="icon"
-                              disabled={actionLoading === u.id}
-                              className={`h-8 w-8 transition-colors ${
-                                deleteConfirmId === u.id
-                                  ? "text-rose-600 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30"
-                                  : "text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-                              }`}
+                              variant="ghost" size="icon" disabled={actionLoading === u.id}
+                              className={`h-8 w-8 transition-colors ${deleteConfirmId === u.id ? "text-rose-600 bg-rose-50 hover:bg-rose-100" : "text-muted-foreground hover:text-rose-600 hover:bg-rose-50"}`}
                               title={deleteConfirmId === u.id ? "Click again to confirm delete" : "Delete user"}
                               onClick={() => handleDelete(u.id)}
                             >
-                              {actionLoading === u.id
-                                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                : <Trash2 className="h-3.5 w-3.5" />
-                              }
+                              {actionLoading === u.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                             </Button>
                           )}
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           )}
         </div>
@@ -253,7 +228,7 @@ export function AdminView({ userId }: Props) {
         user={resetTarget}
         onClose={() => setResetTarget(null)}
       />
-    </div>
+    </PageContainer>
   );
 }
 

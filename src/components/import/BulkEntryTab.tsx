@@ -18,7 +18,7 @@ function blankRow(): StagedExpense {
     amount: "",
     category: "Other",
     date: new Date().toISOString().slice(0, 10),
-    split: true,
+    installmentMonths: 1,
   };
 }
 
@@ -38,7 +38,7 @@ function parsePastedText(text: string, defaultDate: string): StagedExpense[] {
         amount,
         category: "Other" as const,
         date: defaultDate,
-        split: true as const,
+        installmentMonths: 1 as const,
       };
     })
     .filter((r) => r.description);

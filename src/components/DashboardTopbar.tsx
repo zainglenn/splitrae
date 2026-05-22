@@ -2,37 +2,34 @@
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
-import { Plus, ChevronLeft } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { AppView } from "./AppSidebar";
 
 interface Props {
   view: AppView;
   monthLabel: string;
-  year: number;
   currentMonth: string;
-  onAddExpense: () => void;
   onBack?: () => void;
   isGuest?: boolean;
 }
 
 const VIEW_TITLES: Record<string, string> = {
-  "history": "History",
+  "history": "Home",
   "next-month": "Next Month",
   "clean-data": "AI Advisor",
   "manage-payers": "Manage Payers",
   "manage-budgets": "Budgets",
   "admin": "Users",
-  "import-expenses": "Import",
+  "add-expense": "Add Expense",
+  "installments": "Installments",
 };
 
 function toMonthKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
-export function DashboardTopbar({ view, monthLabel, year, currentMonth, onAddExpense, onBack, isGuest }: Props) {
+export function DashboardTopbar({ view, monthLabel, currentMonth, onBack, isGuest: _isGuest }: Props) {
   const title =
-    view === "dashboard" ? `${year} Overview` :
     view === "month" ? monthLabel :
     VIEW_TITLES[view] ?? "";
 
@@ -52,13 +49,6 @@ export function DashboardTopbar({ view, monthLabel, year, currentMonth, onAddExp
         </button>
       )}
       <span className="font-semibold text-sm flex-1 truncate">{title}</span>
-      {view === "month" && !isGuest && (
-        <Button size="sm" className="gap-1.5 h-8" onClick={onAddExpense}>
-          <Plus className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Add Expense</span>
-          <span className="sm:hidden">Add</span>
-        </Button>
-      )}
     </header>
   );
 }

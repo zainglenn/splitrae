@@ -28,6 +28,14 @@ alter publication supabase_realtime add table public.expenses;
 -- Recurring flag for expenses
 alter table public.expenses add column if not exists is_recurring boolean default false;
 
+-- Installment support: link expenses that represent a single purchase split over multiple months
+alter table public.expenses add column if not exists installment_id    uuid    default null;
+alter table public.expenses add column if not exists installment_index integer default null;
+alter table public.expenses add column if not exists installment_total integer default null;
+
+create index if not exists expenses_installment_id on public.expenses (installment_id)
+  where installment_id is not null;
+
 -- Budgets table: monthly budget limits per category
 create table if not exists public.budgets (
   id          uuid primary key default gen_random_uuid(),

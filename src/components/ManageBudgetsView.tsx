@@ -4,10 +4,12 @@ import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PageSection } from "@/components/PageSection";
+import { PageContainer } from "@/components/PageContainer";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useBudgets } from "@/hooks/useBudgets";
 import { supabase } from "@/lib/supabase";
 import { Category, CATEGORIES, CATEGORY_META } from "@/types/expense";
-import { X, Sparkles, Loader2, CheckCircle2, ChevronDown, ChevronUp, History } from "lucide-react";
+import { X, Sparkles, Loader2, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
 
 interface Props {
   userId: string;
@@ -30,8 +32,6 @@ export function ManageBudgetsView({ userId, month = "" }: Props) {
   const [applying, setApplying] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(true);
-  const [backfilling, setBackfilling] = useState(false);
-  const [backfillProgress, setBackfillProgress] = useState("");
 
   useEffect(() => {
     const initial: Partial<Record<Category, string>> = {};
@@ -127,60 +127,10 @@ export function ManageBudgetsView({ userId, month = "" }: Props) {
     });
   }
 
-  async function handleBackfill() {
-    setBackfilling(true);
-    setBackfillProgress("Fetching all expenses…");
-
-    const { data } = await supabase
-      .from("expenses")
-      .select("date, amount, category")
-      .eq("user_id", userId);
-
-    if (!data || data.length === 0) {
-      setBackfillProgress("No expense data found.");
-      setBackfilling(false);
-      return;
-    }
-
-    // Aggregate by month + category
-    const monthMap = new Map<string, Record<string, number>>();
-    const currentMonthKey = month || new Date().toISOString().slice(0, 7);
-    for (const e of data) {
-      const m = e.date.slice(0, 7);
-      if (m >= currentMonthKey) continue; // skip current + future months
-      if (!monthMap.has(m)) monthMap.set(m, {});
-      const cats = monthMap.get(m)!;
-      cats[e.category] = (cats[e.category] ?? 0) + e.amount;
-    }
-
-    const months = Array.from(monthMap.keys()).sort();
-    if (months.length === 0) {
-      setBackfillProgress("No historical months to backfill.");
-      setBackfilling(false);
-      return;
-    }
-
-    let done = 0;
-    for (const m of months) {
-      setBackfillProgress(`Setting budgets for ${m} (${++done}/${months.length})…`);
-      const cats = monthMap.get(m)!;
-      const rows = Object.entries(cats).map(([category, amount]) => ({
-        user_id: userId,
-        category,
-        amount: Math.round(amount),
-        month: m,
-      }));
-      await supabase.from("budgets").upsert(rows, { onConflict: "user_id,category,month" });
-    }
-
-    setBackfillProgress(`Done — budgets set for ${months.length} month${months.length !== 1 ? "s" : ""}.`);
-    setBackfilling(false);
-  }
-
   const suggestedCategories = suggestions ? (Object.keys(suggestions) as Category[]) : [];
 
   return (
-    <div className="space-y-5">
+    <PageContainer>
       {/* AI suggestion panel */}
       <PageSection
         title="AI Budget Generator"
@@ -301,78 +251,60 @@ export function ManageBudgetsView({ userId, month = "" }: Props) {
         </div>
       </PageSection>
 
-      {/* Backfill historical budgets */}
-      <PageSection
-        title="Historical Backfill"
-        description="Set budgets for all past months equal to what was actually spent, so the Budget Tracker has complete history."
-      >
-        <div className="flex items-center gap-3 flex-wrap">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleBackfill}
-            disabled={backfilling}
-            className="gap-2"
-          >
-            {backfilling
-              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              : <History className="h-3.5 w-3.5" />
-            }
-            {backfilling ? "Backfilling…" : "Backfill History"}
-          </Button>
-          {backfillProgress && (
-            <span className="text-sm text-muted-foreground">{backfillProgress}</span>
-          )}
-        </div>
-      </PageSection>
-
       {/* Manual budgets */}
       <PageSection
         title="Monthly Budgets"
         description="Set or override monthly spending limits per category. Changes save automatically."
       >
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {CATEGORIES.map((cat) => {
-            const meta = CATEGORY_META[cat];
-            const hasBudget = drafts[cat] !== undefined && drafts[cat] !== "";
-            return (
-              <div key={cat} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/40 transition-colors">
-                <div
-                  className="w-8 h-8 rounded-md flex items-center justify-center text-sm flex-shrink-0"
-                  style={{ backgroundColor: meta.color + "20" }}
-                >
-                  {meta.emoji}
-                </div>
-                <span className="flex-1 text-sm font-medium truncate">{cat}</span>
-                <div className="relative w-32 flex-shrink-0">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground">
-                    AED
-                  </span>
-                  <Input
-                    type="number"
-                    min="1"
-                    step="1"
-                    placeholder="—"
-                    value={drafts[cat] ?? ""}
-                    onChange={(e) => setDrafts((d) => ({ ...d, [cat]: e.target.value }))}
-                    onBlur={() => handleBlur(cat)}
-                    className="h-9 pl-10 text-sm tabular-nums pr-7"
-                  />
-                  {hasBudget && (
-                    <button
-                      type="button"
-                      onClick={() => handleClear(cat)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-rose-500 transition-colors"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+        <div className="rounded-xl border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="">
+                <TableHead>Category</TableHead>
+                <TableHead className="text-right w-[180px]">Monthly Budget</TableHead>
+                <TableHead className="w-[40px]" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {CATEGORIES.map((cat) => {
+                const meta = CATEGORY_META[cat];
+                const hasBudget = drafts[cat] !== undefined && drafts[cat] !== "";
+                return (
+                  <TableRow key={cat}>
+                    <TableCell>
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-md flex items-center justify-center text-sm shrink-0" style={{ backgroundColor: meta.color + "20" }}>
+                          {meta.emoji}
+                        </div>
+                        <span className="text-sm font-medium">{cat}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="relative inline-flex items-center">
+                        <span className="absolute left-2.5 text-xs font-semibold text-muted-foreground pointer-events-none">AED</span>
+                        <Input
+                          type="number" min="1" step="1" placeholder="—"
+                          value={drafts[cat] ?? ""}
+                          onChange={(e) => setDrafts((d) => ({ ...d, [cat]: e.target.value }))}
+                          onBlur={() => handleBlur(cat)}
+                          className="h-8 pl-10 pr-2 text-sm tabular-nums w-36 text-right"
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {hasBudget && (
+                        <button type="button" onClick={() => handleClear(cat)} className="text-muted-foreground hover:text-rose-500 transition-colors">
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         </div>
       </PageSection>
-    </div>
+    </PageContainer>
   );
 }

@@ -74,8 +74,10 @@ export interface Expense {
   amount: number;
   category: Category;
   date: string; // YYYY-MM-DD
-  split: boolean; // true = shared household expense (split 50/50)
   is_recurring?: boolean;
+  installment_id?: string | null;
+  installment_index?: number | null;
+  installment_total?: number | null;
 }
 
 export interface Budget {

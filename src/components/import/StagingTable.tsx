@@ -69,6 +69,7 @@ export function StagingTable({ rows, onChange, invalidIds }: Props) {
             <th className="text-left font-medium pb-2 pr-2">Description</th>
             <th className="text-left font-medium pb-2 pr-2 w-32">Amount (AED)</th>
             <th className="text-left font-medium pb-2 pr-2 w-40">Category</th>
+            <th className="text-left font-medium pb-2 pr-2 w-24">Installment</th>
             <th className="w-8 pb-2" />
           </tr>
         </thead>
@@ -123,6 +124,22 @@ export function StagingTable({ rows, onChange, invalidIds }: Props) {
                           {c}
                         </SelectItem>
                       ))}
+                    </SelectContent>
+                  </Select>
+                </td>
+                <td className="py-1.5 pr-2">
+                  <Select
+                    value={String(row.installmentMonths ?? 1)}
+                    onValueChange={(v) => update(row._id, { installmentMonths: Number(v) as StagedExpense["installmentMonths"] })}
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1" className="text-xs">None</SelectItem>
+                      <SelectItem value="4" className="text-xs">4 mo</SelectItem>
+                      <SelectItem value="8" className="text-xs">8 mo</SelectItem>
+                      <SelectItem value="12" className="text-xs">12 mo</SelectItem>
                     </SelectContent>
                   </Select>
                 </td>

@@ -11,12 +11,12 @@ interface Props {
 
 export function PageSection({ title, description, children, className }: Props) {
   return (
-    <div className={cn("rounded-xl border bg-card shadow-sm", className)}>
+    <div className={cn("rounded-xl border-0 bg-card shadow-sm", className)}>
       {(title || description) && (
         <div className="px-5 pt-5 pb-3 border-b">
           {title && <h3 className="text-sm font-semibold">{title}</h3>}
           {description && (
-            <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
           )}
         </div>
       )}

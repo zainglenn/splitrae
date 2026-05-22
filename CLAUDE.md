@@ -22,9 +22,11 @@ No test suite exists. Deploy to production via `vercel --prod`.
 
 All state lives in Supabase. Client components fetch directly via the `supabase` proxy from `src/lib/supabase.ts` — there is no server-side data fetching layer. Every hook subscribes to real-time Postgres changes so the UI updates across devices without polling.
 
-### Authentication
+### Authentication & roles
 
-`useAuth` (in `src/components/useAuth.ts`) wraps Supabase auth. The app root (`src/app/page.tsx`) gates rendering behind `<AuthGate>` — the entire app is client-side. `userId` is threaded as a prop into every hook and component that touches the DB.
+`useAuth` (`src/hooks/useAuth.ts`) wraps Supabase auth. The app root (`src/app/page.tsx`) gates rendering behind `<AuthGate>` — the entire app is client-side. `userId` is threaded as a prop into every hook and component that touches the DB.
+
+`useProfile` (`src/hooks/useProfile.ts`) fetches the `profiles` table row for the current user, exposing `isAdmin` (`role === "admin"`) and `isReadOnly` (`role === "read"`). The `AdminView` component is gated behind `isAdmin`.
 
 ### Hooks pattern
 
@@ -35,19 +37,28 @@ Each domain has a dedicated hook that owns all CRUD for that table:
 | `useExpenses` | `expenses` | Per user + month |
 | `usePayers` | `payers` | Per user |
 | `usePayments` | `payments` | Per user + month |
-| `useBudgets` | `useBudgets.ts` | Per user |
+| `useBudgets` | `budgets` | Per user |
 | `useDashboardStats` | `expenses` | Per user + full year |
+| `useHousehold` | `payers` | Resolves owner vs guest identity |
+| `useProfile` | `profiles` | Role + email for current user |
+| `usePayerYearlyBalance` | `expenses` + `payments` | Yearly share/paid/balance for one payer |
 
 Hooks return data + mutation functions. Components never call `supabase` directly — they call hook functions.
 
+### Multi-user household model
+
+`useHousehold` resolves which `ownerId` to use for all data queries. A payer row can have `linked_user_id` pointing to a Supabase auth user. If that user is not the payer's `user_id`, they are a **guest** viewing the owner's household. All hooks that accept `ownerId` should receive `household.ownerId`, not the raw `userId`, so guests see the correct data.
+
 ### AI routes
 
-All AI features call **DeepSeek** (`deepseek-chat`) via `DEEPSEEK_API_KEY`. Four routes under `src/app/api/ai/`:
+All AI features call **DeepSeek** (`deepseek-chat`) via `DEEPSEEK_API_KEY`. Six routes under `src/app/api/ai/`:
 
 - `categorize` — single expense → category (used by `ExpenseForm` on description blur)
 - `normalize` — batch of up to 30 expenses → suggested title/category corrections (current month only, shown in `ExpenseList`)
-- `bulk-normalize` — fetches all user expenses via JWT auth, normalizes in batches of 30, writes corrections back to DB (used by `CleanDataDialog`)
+- `bulk-normalize` — fetches all user expenses via JWT auth, normalizes in batches of 30, writes corrections back to DB (used by `CleanDataView`)
 - `insights` — month summary → 2–3 plain-English bullets (used by `AIInsightsCard`)
+- `budgets` — receives per-category monthly spending history, returns suggested budget amounts (used by `ManageBudgetsView`)
+- `extract-from-image` — receives a base64 image + mimeType, returns extracted transactions array (used by `ImportExpensesPage` → `ScreenshotTab`)
 
 The `bulk-normalize` route requires `Authorization: Bearer <supabase-access-token>` — it calls `supabase.auth.getUser(token)` to enforce ownership before touching any data.
 

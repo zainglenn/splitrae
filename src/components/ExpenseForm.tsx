@@ -25,7 +25,7 @@ import { Switch } from "@/components/ui/switch";
 interface Props {
   open: boolean;
   onClose: () => void;
-  onSave: (data: Omit<Expense, "id">) => void;
+  onSave: (data: Omit<Expense, "id">, installmentMonths?: number) => void;
   initialData?: Expense | null;
   defaultDate: string;
 }
@@ -36,6 +36,7 @@ export function ExpenseForm({ open, onClose, onSave, initialData, defaultDate }:
   const [category, setCategory] = useState<Category>("Other");
   const [date, setDate] = useState(defaultDate);
   const [isRecurring, setIsRecurring] = useState(false);
+  const [installmentMonths, setInstallmentMonths] = useState<number>(1);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSuggested, setAiSuggested] = useState<Category | null>(null);
   const userChangedCategoryRef = useRef(false);
@@ -55,6 +56,7 @@ export function ExpenseForm({ open, onClose, onSave, initialData, defaultDate }:
       setCategory("Other");
       setDate(defaultDate);
       setIsRecurring(false);
+      setInstallmentMonths(1);
       userChangedCategoryRef.current = false;
     }
     setAiSuggested(null);
@@ -118,7 +120,10 @@ export function ExpenseForm({ open, onClose, onSave, initialData, defaultDate }:
     e.preventDefault();
     const parsed = parseFloat(amount);
     if (!description.trim() || isNaN(parsed) || parsed <= 0) return;
-    onSave({ description: description.trim(), amount: parsed, category, date, split: true, is_recurring: isRecurring });
+    onSave(
+      { description: description.trim(), amount: parsed, category, date, is_recurring: isRecurring },
+      installmentMonths > 1 ? installmentMonths : undefined
+    );
     onClose();
   }
 
@@ -232,6 +237,29 @@ export function ExpenseForm({ open, onClose, onSave, initialData, defaultDate }:
               onCheckedChange={setIsRecurring}
             />
           </div>
+
+          {/* Installment split — only shown when adding new expenses */}
+          {!initialData && (
+            <div className="flex items-center justify-between rounded-lg border px-3 py-2.5">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-medium text-slate-700 cursor-pointer">
+                  💳 Split into installments
+                </Label>
+                <p className="text-xs text-muted-foreground">Divide total across multiple months</p>
+              </div>
+              <Select value={String(installmentMonths)} onValueChange={(v) => setInstallmentMonths(Number(v))}>
+                <SelectTrigger className="h-8 w-[72px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">None</SelectItem>
+                  <SelectItem value="4">4 mo</SelectItem>
+                  <SelectItem value="8">8 mo</SelectItem>
+                  <SelectItem value="12">12 mo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <DialogFooter className="pt-2 gap-2">
             <Button type="button" variant="outline" onClick={onClose} className="flex-1 sm:flex-none">

@@ -29,7 +29,7 @@ export function AuthGate() {
       <Card className="w-full max-w-sm shadow-2xl border-0">
         <CardHeader className="pb-4 text-center">
           <div className="text-3xl mb-2">💸</div>
-          <CardTitle className="text-xl">Expense Tracker</CardTitle>
+          <CardTitle className="text-xl">Splitr</CardTitle>
           <CardDescription>Sign in to access your expenses</CardDescription>
         </CardHeader>
         <CardContent>

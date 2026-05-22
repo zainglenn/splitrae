@@ -43,7 +43,9 @@ export function ScreenshotTab({ staged, onStagedChange, invalidIds }: Props) {
         return;
       }
 
-      const transactions: StagedExpense[] = data.transactions ?? [];
+      const transactions: StagedExpense[] = (data.transactions ?? []).map(
+        (t: StagedExpense) => ({ ...t, installmentMonths: 1 as const })
+      );
       if (transactions.length === 0) {
         setLastResult({ count: 0, error: "No transactions found in this image." });
       } else {

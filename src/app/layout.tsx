@@ -15,12 +15,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Expense Tracker",
+  title: "Splitr",
   description: "Monthly expense tracker in AED",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Expense Tracker",
+    title: "Splitr",
   },
 };
 

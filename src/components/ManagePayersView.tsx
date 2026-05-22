@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageSection } from "@/components/PageSection";
+import { PageContainer } from "@/components/PageContainer";
 import { usePayers } from "@/hooks/usePayers";
 import { supabase } from "@/lib/supabase";
 import { PAYER_COLORS } from "@/types/payer";
@@ -77,7 +78,7 @@ export function ManagePayersView({ userId }: Props) {
   }
 
   return (
-    <div className="space-y-5">
+    <PageContainer>
       <PageSection
         title="Payers"
         description="People who share split expenses with you. Link a payer to a user account so they get a shared view when they log in."
@@ -216,6 +217,6 @@ export function ManagePayersView({ userId }: Props) {
           </Button>
         </form>
       </PageSection>
-    </div>
+    </PageContainer>
   );
 }

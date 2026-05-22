@@ -25,7 +25,7 @@ interface Props {
   expenses: Expense[];
   onEdit?: (expense: Expense) => void;
   onDelete?: (id: string, installmentId?: string | null) => void;
-  onConvertToInstallments?: (expense: Expense, months: number, monthlyAmount: number, startDate: string) => void;
+  onConvertToInstallments?: (expense: Expense, months: number) => void;
   filterCategory?: Category | null;
   onClearCategoryFilter?: () => void;
 }
@@ -62,8 +62,6 @@ export function ExpenseList({ expenses, onEdit, onDelete, onConvertToInstallment
   const [page, setPage] = useState(1);
   const [convertTarget, setConvertTarget] = useState<Expense | null>(null);
   const [convMonths, setConvMonths] = useState("3");
-  const [convAmount, setConvAmount] = useState("");
-  const [convStart, setConvStart] = useState("");
   const [converting, setConverting] = useState(false);
 
   function toggleSort(key: SortKey) {
@@ -264,8 +262,6 @@ export function ExpenseList({ expenses, onEdit, onDelete, onConvertToInstallment
                               className="h-9 w-9 text-slate-400 hover:text-blue-600 hover:bg-blue-50"
                               onClick={() => {
                                 setConvertTarget(expense);
-                                setConvAmount(String(expense.amount));
-                                setConvStart(expense.date);
                                 setConvMonths("3");
                               }}
                               aria-label="Convert to installments"
@@ -339,20 +335,7 @@ export function ExpenseList({ expenses, onEdit, onDelete, onConvertToInstallment
           </DialogHeader>
           {convertTarget && (
             <div className="space-y-4 py-1">
-              <p className="text-sm text-muted-foreground truncate">
-                <span className="font-medium text-foreground">{convertTarget.description}</span>
-              </p>
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">Monthly Amount (AED)</label>
-                <Input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  value={convAmount}
-                  onChange={(e) => setConvAmount(e.target.value)}
-                  className="h-10"
-                />
-              </div>
+              <p className="text-sm truncate font-medium">{convertTarget.description}</p>
               <div className="space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">Number of Months</label>
                 <Input
@@ -365,22 +348,11 @@ export function ExpenseList({ expenses, onEdit, onDelete, onConvertToInstallment
                   className="h-10"
                 />
               </div>
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">Start Date</label>
-                <Input
-                  type="date"
-                  value={convStart}
-                  onChange={(e) => setConvStart(e.target.value)}
-                  className="h-10"
-                />
-              </div>
-              {convAmount && convMonths && (
+              {convMonths && parseInt(convMonths) >= 2 && (
                 <p className="text-xs text-muted-foreground">
-                  Total: <span className="font-semibold text-foreground">
-                    {new Intl.NumberFormat("en-AE", { style: "currency", currency: "AED" }).format(
-                      parseFloat(convAmount) * parseInt(convMonths)
-                    )}
-                  </span> over {convMonths} months
+                  {new Intl.NumberFormat("en-AE", { style: "currency", currency: "AED" }).format(
+                    Math.round((convertTarget.amount / parseInt(convMonths)) * 100) / 100
+                  )} / month over {convMonths} months
                 </p>
               )}
             </div>
@@ -394,16 +366,11 @@ export function ExpenseList({ expenses, onEdit, onDelete, onConvertToInstallment
               Cancel
             </Button>
             <Button
-              disabled={converting || !convAmount || !convMonths || !convStart || parseInt(convMonths) < 2}
+              disabled={converting || !convMonths || parseInt(convMonths) < 2}
               onClick={async () => {
                 if (!convertTarget || !onConvertToInstallments) return;
                 setConverting(true);
-                await onConvertToInstallments(
-                  convertTarget,
-                  parseInt(convMonths),
-                  parseFloat(convAmount),
-                  convStart,
-                );
+                await onConvertToInstallments(convertTarget, parseInt(convMonths));
                 setConverting(false);
                 setConvertTarget(null);
               }}

@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { CalendarRange, CalendarDays, CalendarPlus, LayoutDashboard, Wallet, LogOut, Users, Sparkles, ShieldCheck, Upload } from "lucide-react";
+import { Home, CalendarDays, CalendarPlus, Wallet, LogOut, Users, ShieldCheck, Upload, PiggyBank, CreditCard } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 
@@ -33,7 +33,7 @@ function formatMonthLabel(key: string) {
 }
 
 
-export type AppView = "dashboard" | "month" | "next-month" | "history" | "clean-data" | "manage-payers" | "manage-budgets" | "admin" | "import-expenses";
+export type AppView = "month" | "history" | "manage-payers" | "manage-budgets" | "admin" | "add-expense" | "installments";
 
 interface Props {
   view: AppView;
@@ -49,11 +49,6 @@ export function AppSidebar({ view, onViewChange, currentMonth, onMonthChange, us
   const { isAdmin } = useProfile(userId);
   const { setOpenMobile } = useSidebar();
   const initials = user?.email?.slice(0, 2).toUpperCase() ?? "??";
-
-  function selectDashboard() {
-    onViewChange("dashboard");
-    setOpenMobile(false);
-  }
 
   function nav(v: AppView) {
     onViewChange(v);
@@ -71,7 +66,7 @@ export function AppSidebar({ view, onViewChange, currentMonth, onMonthChange, us
                 <Wallet className="h-4 w-4" />
               </div>
               <div className="flex flex-col leading-none">
-                <span className="font-semibold text-sm">Expense Tracker</span>
+                <span className="font-semibold text-sm">Splitr</span>
                 <span className="text-xs opacity-60">AED</span>
               </div>
             </SidebarMenuButton>
@@ -80,13 +75,13 @@ export function AppSidebar({ view, onViewChange, currentMonth, onMonthChange, us
       </SidebarHeader>
 
       <SidebarContent>
-        {/* Top nav: Dashboard + Active Month */}
+        {/* Top nav */}
         <SidebarGroup>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton isActive={view === "dashboard"} onClick={selectDashboard} tooltip="Dashboard">
-                <LayoutDashboard className="h-4 w-4 shrink-0" />
-                <span>Dashboard</span>
+              <SidebarMenuButton isActive={view === "history" || (view === "month" && currentMonth !== toMonthKey(new Date()))} onClick={() => nav("history")} tooltip="Home">
+                <Home className="h-4 w-4 shrink-0" />
+                <span>Home</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
 
@@ -102,23 +97,27 @@ export function AppSidebar({ view, onViewChange, currentMonth, onMonthChange, us
             </SidebarMenuItem>
 
             <SidebarMenuItem>
-              <SidebarMenuButton isActive={view === "next-month"} onClick={() => nav("next-month")} tooltip="Next Month">
+              <SidebarMenuButton
+                isActive={view === "month" && currentMonth === toMonthKey(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1))}
+                onClick={() => { onMonthChange(toMonthKey(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1))); onViewChange("month"); setOpenMobile(false); }}
+                tooltip={`Next Month — ${formatMonthLabel(toMonthKey(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1)))}`}
+              >
                 <CalendarPlus className="h-4 w-4 shrink-0" />
                 <span>Next Month</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
 
             <SidebarMenuItem>
-              <SidebarMenuButton isActive={view === "history" || (view === "month" && currentMonth !== toMonthKey(new Date()))} onClick={() => nav("history")} tooltip="History">
-                <CalendarRange className="h-4 w-4 shrink-0" />
-                <span>History</span>
+              <SidebarMenuButton isActive={view === "add-expense"} onClick={() => nav("add-expense")} tooltip="Add Expense">
+                <Upload className="h-4 w-4 shrink-0" />
+                <span>Add Expense</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
 
             <SidebarMenuItem>
-              <SidebarMenuButton isActive={view === "import-expenses"} onClick={() => nav("import-expenses")} tooltip="Import">
-                <Upload className="h-4 w-4 shrink-0" />
-                <span>Import</span>
+              <SidebarMenuButton isActive={view === "installments"} onClick={() => nav("installments")} tooltip="Installments">
+                <CreditCard className="h-4 w-4 shrink-0" />
+                <span>Installments</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -137,14 +136,8 @@ export function AppSidebar({ view, onViewChange, currentMonth, onMonthChange, us
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton isActive={view === "manage-budgets"} onClick={() => nav("manage-budgets")} tooltip="Manage Budgets">
-                  <LayoutDashboard className="h-4 w-4 shrink-0" />
+                  <PiggyBank className="h-4 w-4 shrink-0" />
                   <span>Budgets</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton isActive={view === "clean-data"} onClick={() => nav("clean-data")} tooltip="AI Advisor">
-                  <Sparkles className="h-4 w-4 shrink-0" />
-                  <span>AI Advisor</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>

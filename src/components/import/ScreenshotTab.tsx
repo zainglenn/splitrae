@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { ImageUp, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { StagingTable } from "@/components/import/StagingTable";
 import type { StagedExpense } from "@/components/ImportExpensesPage";
+import { createWorker } from "tesseract.js";
 
 interface Props {
   staged: StagedExpense[];
@@ -18,6 +19,7 @@ interface ExtractionResult {
 
 export function ScreenshotTab({ staged, onStagedChange, invalidIds }: Props) {
   const [extracting, setExtracting] = useState(false);
+  const [extractingStep, setExtractingStep] = useState<"ocr" | "ai" | null>(null);
   const [lastResult, setLastResult] = useState<ExtractionResult | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -26,14 +28,26 @@ export function ScreenshotTab({ staged, onStagedChange, invalidIds }: Props) {
     if (!file.type.startsWith("image/")) return;
 
     setExtracting(true);
+    setExtractingStep("ocr");
     setLastResult(null);
 
     try {
-      const base64 = await fileToBase64(file);
+      // Step 1: OCR via Tesseract.js (client-side, no API key)
+      const worker = await createWorker("eng");
+      const { data: { text } } = await worker.recognize(file);
+      await worker.terminate();
+
+      if (!text.trim()) {
+        setLastResult({ count: 0, error: "Could not read text from image." });
+        return;
+      }
+
+      // Step 2: Parse transactions from text via DeepSeek
+      setExtractingStep("ai");
       const res = await fetch("/api/ai/extract-from-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: base64, mimeType: file.type }),
+        body: JSON.stringify({ text }),
       });
 
       const data = await res.json();
@@ -56,6 +70,7 @@ export function ScreenshotTab({ staged, onStagedChange, invalidIds }: Props) {
       setLastResult({ count: 0, error: "Network error — please try again." });
     } finally {
       setExtracting(false);
+      setExtractingStep(null);
       if (inputRef.current) inputRef.current.value = "";
     }
   }
@@ -95,7 +110,9 @@ export function ScreenshotTab({ staged, onStagedChange, invalidIds }: Props) {
         {extracting ? (
           <div className="flex flex-col items-center gap-2 text-muted-foreground">
             <Loader2 className="h-8 w-8 animate-spin" />
-            <span className="text-sm">Extracting transactions…</span>
+            <span className="text-sm">
+              {extractingStep === "ocr" ? "Reading image…" : "Parsing transactions…"}
+            </span>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2 text-muted-foreground">
@@ -140,15 +157,3 @@ export function ScreenshotTab({ staged, onStagedChange, invalidIds }: Props) {
   );
 }
 
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      // Strip the data URL prefix: "data:image/png;base64,"
-      resolve(result.split(",")[1]);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}

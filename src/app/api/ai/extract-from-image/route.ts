@@ -7,7 +7,9 @@ const CATEGORIES = [
   "Pets", "Insurance", "Other",
 ];
 
-const PROMPT = `You are a financial transaction extractor for a household in the UAE. Extract ALL transactions visible in this image (bank statement, credit card statement, receipt, or any financial screenshot).
+const PROMPT = `You are a financial transaction extractor for a household in the UAE. The following is raw OCR text from a bank statement, credit card statement, or receipt.
+
+Extract ALL transactions visible in the text.
 
 Return ONLY a valid JSON array — no markdown fences, no explanation. Each object must have:
 - "description": clean merchant or description name (string)
@@ -17,21 +19,18 @@ Return ONLY a valid JSON array — no markdown fences, no explanation. Each obje
 
 Guidelines: Dine Out = restaurant on-site; Takeaways = delivery (Talabat, Deliveroo); Groceries = supermarkets/grocery delivery; Transport = Uber/Careem/fuel; Subscriptions = Netflix/Spotify/apps.
 
-Example output:
-[{"description":"Carrefour","amount":245.50,"category":"Groceries","date":"2026-05-15"},{"description":"Uber","amount":32.00,"category":"Transport","date":"2026-05-15"}]
-
 If no transactions are visible, return: []`;
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { image, mimeType } = body;
+  const { text } = body;
 
-  if (!image || !mimeType) {
-    return NextResponse.json({ error: "image and mimeType required" }, { status: 400 });
+  if (!text?.trim()) {
+    return NextResponse.json({ error: "text required" }, { status: 400 });
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000);
+  const timeout = setTimeout(() => controller.abort(), 15000);
 
   try {
     const res = await fetch("https://api.deepseek.com/v1/chat/completions", {
@@ -45,16 +44,8 @@ export async function POST(req: NextRequest) {
         temperature: 0,
         max_tokens: 2000,
         messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "image_url",
-                image_url: { url: `data:${mimeType};base64,${image}` },
-              },
-              { type: "text", text: PROMPT },
-            ],
-          },
+          { role: "system", content: PROMPT },
+          { role: "user", content: text },
         ],
       }),
       signal: controller.signal,

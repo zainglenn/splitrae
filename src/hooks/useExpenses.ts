@@ -16,7 +16,7 @@ export function useExpenses(month: MonthKey, userId: string) {
     if (showLoading) setLoading(true);
     const { data } = await supabase
       .from("expenses")
-      .select("id, description, amount, category, date, split, is_recurring")
+      .select("id, description, amount, category, date, is_recurring, installment_id, installment_index, installment_total")
       .eq("user_id", userId)
       .gte("date", from)
       .lte("date", to)
@@ -63,10 +63,43 @@ export function useExpenses(month: MonthKey, userId: string) {
     await fetchExpenses(false);
   }, [userId, fetchExpenses]);
 
-  const deleteExpense = useCallback(async (id: string) => {
-    await supabase.from("expenses").delete().eq("id", id).eq("user_id", userId);
+  const deleteExpense = useCallback(async (id: string, installmentId?: string | null) => {
+    if (installmentId) {
+      await supabase.from("expenses").delete()
+        .eq("installment_id", installmentId).eq("user_id", userId);
+    } else {
+      await supabase.from("expenses").delete().eq("id", id).eq("user_id", userId);
+    }
     await fetchExpenses(false);
   }, [userId, fetchExpenses]);
 
-  return { expenses, loading, addExpense, updateExpense, deleteExpense };
+  const convertToInstallments = useCallback(async (
+    expense: Expense,
+    months: number,
+    monthlyAmount: number,
+    startDate: string,
+  ) => {
+    await supabase.from("expenses").delete().eq("id", expense.id).eq("user_id", userId);
+    const installment_id = crypto.randomUUID();
+    const rows = Array.from({ length: months }, (_, i) => {
+      const d = new Date(startDate + "T00:00:00");
+      d.setMonth(d.getMonth() + i);
+      return {
+        id: crypto.randomUUID(),
+        user_id: userId,
+        description: expense.description,
+        amount: monthlyAmount,
+        category: expense.category,
+        date: d.toISOString().slice(0, 10),
+        is_recurring: false,
+        installment_id,
+        installment_index: i + 1,
+        installment_total: months,
+      };
+    });
+    await supabase.from("expenses").insert(rows);
+    await fetchExpenses(false);
+  }, [userId, fetchExpenses]);
+
+  return { expenses, loading, addExpense, updateExpense, deleteExpense, convertToInstallments };
 }

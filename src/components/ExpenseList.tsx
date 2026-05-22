@@ -12,12 +12,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Pencil, Trash2, Receipt, ArrowUpDown, ArrowUp, ArrowDown, X, RefreshCw } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Pencil, Trash2, Receipt, ArrowUpDown, ArrowUp, ArrowDown, X, RefreshCw, Layers } from "lucide-react";
 
 interface Props {
   expenses: Expense[];
   onEdit?: (expense: Expense) => void;
-  onDelete?: (id: string) => void;
+  onDelete?: (id: string, installmentId?: string | null) => void;
+  onConvertToInstallments?: (expense: Expense, months: number, monthlyAmount: number, startDate: string) => void;
   filterCategory?: Category | null;
   onClearCategoryFilter?: () => void;
 }
@@ -45,10 +53,18 @@ function SortIcon({ col, active, dir }: { col: string; active: boolean; dir: Sor
     : <ArrowDown className="h-3.5 w-3.5" />;
 }
 
-export function ExpenseList({ expenses, onEdit, onDelete, filterCategory, onClearCategoryFilter }: Props) {
+const PAGE_SIZE = 10;
+
+export function ExpenseList({ expenses, onEdit, onDelete, onConvertToInstallments, filterCategory, onClearCategoryFilter }: Props) {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [page, setPage] = useState(1);
+  const [convertTarget, setConvertTarget] = useState<Expense | null>(null);
+  const [convMonths, setConvMonths] = useState("3");
+  const [convAmount, setConvAmount] = useState("");
+  const [convStart, setConvStart] = useState("");
+  const [converting, setConverting] = useState(false);
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) {
@@ -57,6 +73,7 @@ export function ExpenseList({ expenses, onEdit, onDelete, filterCategory, onClea
       setSortKey(key);
       setSortDir(key === "date" ? "desc" : "asc");
     }
+    setPage(1);
   }
 
   const filtered = useMemo(() => {
@@ -75,6 +92,10 @@ export function ExpenseList({ expenses, onEdit, onDelete, filterCategory, onClea
       return sortDir === "asc" ? cmp : -cmp;
     });
   }, [expenses, filterCategory, search, sortKey, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   if (expenses.length === 0) {
     return (
@@ -98,7 +119,7 @@ export function ExpenseList({ expenses, onEdit, onDelete, filterCategory, onClea
           <Input
             placeholder="Search…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="h-10 text-base flex-1"
           />
         </div>
@@ -135,7 +156,7 @@ export function ExpenseList({ expenses, onEdit, onDelete, filterCategory, onClea
         )}
         {!filterCategory && search === "" && (
           <p className="text-xs text-muted-foreground text-right tabular-nums">
-            {filtered.length} transactions
+            {filtered.length} transaction{filtered.length !== 1 ? "s" : ""}
           </p>
         )}
       </div>
@@ -144,7 +165,7 @@ export function ExpenseList({ expenses, onEdit, onDelete, filterCategory, onClea
       <div className="rounded-xl border overflow-hidden overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="bg-slate-50 hover:bg-slate-50">
+            <TableRow className="">
               <TableHead
                 className="w-[80px] cursor-pointer select-none"
                 onClick={() => toggleSort("date")}
@@ -188,7 +209,7 @@ export function ExpenseList({ expenses, onEdit, onDelete, filterCategory, onClea
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((expense) => {
+              paginated.map((expense) => {
                 const meta = CATEGORY_META[expense.category];
                 return (
                   <TableRow key={expense.id}>
@@ -202,6 +223,14 @@ export function ExpenseList({ expenses, onEdit, onDelete, filterCategory, onClea
                           {expense.is_recurring && (
                             <span title="Recurring monthly">
                               <RefreshCw className="h-3 w-3 flex-shrink-0 text-violet-500" />
+                            </span>
+                          )}
+                          {expense.installment_index != null && expense.installment_total != null && (
+                            <span
+                              className="inline-flex items-center text-[10px] font-semibold tabular-nums px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-600 border border-blue-200 shrink-0"
+                              title={`Installment ${expense.installment_index} of ${expense.installment_total}`}
+                            >
+                              {expense.installment_index}/{expense.installment_total}
                             </span>
                           )}
                         </div>
@@ -225,9 +254,25 @@ export function ExpenseList({ expenses, onEdit, onDelete, filterCategory, onClea
                     <TableCell className="text-right font-semibold tabular-nums text-slate-800 whitespace-nowrap align-top pt-3">
                       {fmt.format(expense.amount)}
                     </TableCell>
-                    {(onEdit || onDelete) && (
+                    {(onEdit || onDelete || onConvertToInstallments) && (
                       <TableCell className="align-top pt-1">
                         <div className="flex gap-0.5 justify-end">
+                          {onConvertToInstallments && !expense.installment_id && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-9 w-9 text-slate-400 hover:text-blue-600 hover:bg-blue-50"
+                              onClick={() => {
+                                setConvertTarget(expense);
+                                setConvAmount(String(expense.amount));
+                                setConvStart(expense.date);
+                                setConvMonths("3");
+                              }}
+                              aria-label="Convert to installments"
+                            >
+                              <Layers className="h-4 w-4" />
+                            </Button>
+                          )}
                           {onEdit && (
                             <Button
                               size="icon"
@@ -244,7 +289,7 @@ export function ExpenseList({ expenses, onEdit, onDelete, filterCategory, onClea
                               size="icon"
                               variant="ghost"
                               className="h-9 w-9 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-                              onClick={() => onDelete(expense.id)}
+                              onClick={() => onDelete(expense.id, expense.installment_id)}
                               aria-label="Delete"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -260,6 +305,114 @@ export function ExpenseList({ expenses, onEdit, onDelete, filterCategory, onClea
           </TableBody>
         </Table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between gap-2 pt-1">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={safePage === 1}
+            className="h-8 px-3 text-xs"
+          >
+            Previous
+          </Button>
+          <span className="text-xs text-muted-foreground tabular-nums">
+            Page {safePage} of {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={safePage === totalPages}
+            className="h-8 px-3 text-xs"
+          >
+            Next
+          </Button>
+        </div>
+      )}
+
+      <Dialog open={!!convertTarget} onOpenChange={(open) => { if (!open) setConvertTarget(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Convert to Installments</DialogTitle>
+          </DialogHeader>
+          {convertTarget && (
+            <div className="space-y-4 py-1">
+              <p className="text-sm text-muted-foreground truncate">
+                <span className="font-medium text-foreground">{convertTarget.description}</span>
+              </p>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Monthly Amount (AED)</label>
+                <Input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={convAmount}
+                  onChange={(e) => setConvAmount(e.target.value)}
+                  className="h-10"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Number of Months</label>
+                <Input
+                  type="number"
+                  min="2"
+                  max="60"
+                  step="1"
+                  value={convMonths}
+                  onChange={(e) => setConvMonths(e.target.value)}
+                  className="h-10"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Start Date</label>
+                <Input
+                  type="date"
+                  value={convStart}
+                  onChange={(e) => setConvStart(e.target.value)}
+                  className="h-10"
+                />
+              </div>
+              {convAmount && convMonths && (
+                <p className="text-xs text-muted-foreground">
+                  Total: <span className="font-semibold text-foreground">
+                    {new Intl.NumberFormat("en-AE", { style: "currency", currency: "AED" }).format(
+                      parseFloat(convAmount) * parseInt(convMonths)
+                    )}
+                  </span> over {convMonths} months
+                </p>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setConvertTarget(null)}
+              disabled={converting}
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={converting || !convAmount || !convMonths || !convStart || parseInt(convMonths) < 2}
+              onClick={async () => {
+                if (!convertTarget || !onConvertToInstallments) return;
+                setConverting(true);
+                await onConvertToInstallments(
+                  convertTarget,
+                  parseInt(convMonths),
+                  parseFloat(convAmount),
+                  convStart,
+                );
+                setConverting(false);
+                setConvertTarget(null);
+              }}
+            >
+              {converting ? "Converting…" : "Convert"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

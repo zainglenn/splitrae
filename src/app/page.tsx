@@ -59,7 +59,7 @@ function TrackerApp({ userId }: { userId: string }) {
   const { isReadOnly: isRoleReadOnly } = useProfile(userId);
   const isReadOnly = isGuest || isRoleReadOnly;
 
-  const { expenses, loading, addExpense, updateExpense, deleteExpense } = useExpenses(currentMonth, ownerId);
+  const { expenses, loading, addExpense, updateExpense, deleteExpense, convertToInstallments } = useExpenses(currentMonth, ownerId);
   const [py, pm] = currentMonth.split("-").map(Number);
   const prevMonth: MonthKey = pm === 1 ? `${py - 1}-12` : `${py}-${String(pm - 1).padStart(2, "0")}`;
   const { expenses: prevExpenses } = useExpenses(prevMonth, ownerId);
@@ -184,6 +184,7 @@ function TrackerApp({ userId }: { userId: string }) {
                   expenses={expenses}
                   onEdit={isReadOnly ? undefined : openEdit}
                   onDelete={isReadOnly ? undefined : deleteExpense}
+                  onConvertToInstallments={isReadOnly ? undefined : convertToInstallments}
                   filterCategory={activeCategoryFilter}
                   onClearCategoryFilter={() => setActiveCategoryFilter(null)}
                 />

@@ -76,15 +76,16 @@ export function useExpenses(month: MonthKey, userId: string) {
   const convertToInstallments = useCallback(async (expense: Expense, months: number) => {
     const monthlyAmount = Math.round((expense.amount / months) * 100) / 100;
     const installment_id = crypto.randomUUID();
-    const origin = new Date(expense.date + "T00:00:00");
+    const [origYear, origMonth] = expense.date.split("-").map(Number);
     const rows = Array.from({ length: months }, (_, i) => {
       let date: string;
       if (i === 0) {
         date = expense.date;
       } else {
-        const d = new Date(origin);
-        d.setMonth(d.getMonth() + i, 1);
-        date = d.toISOString().slice(0, 10);
+        const totalMonth = origMonth - 1 + i;
+        const y = origYear + Math.floor(totalMonth / 12);
+        const m = (totalMonth % 12) + 1;
+        date = `${y}-${String(m).padStart(2, "0")}-01`;
       }
       return {
         id: crypto.randomUUID(),

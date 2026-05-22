@@ -5,6 +5,7 @@ import { Expense } from "@/types/expense";
 import { Payer, Payment } from "@/types/payer";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, ChevronDown, ChevronUp, Trash2, Plus, Users } from "lucide-react";
+import { SummaryRow } from "@/components/SummaryRow";
 
 interface Props {
   expenses: Expense[];
@@ -72,7 +73,8 @@ export function HouseholdBalance({
         const payerPayments = payments.filter((p) => p.payer_id === payer.id);
         const totalPaid = payerPayments.reduce((s, p) => s + p.amount, 0);
         const balance = owedPerPayer - totalPaid;
-        const isPaidUp = balance <= 0.005;
+        const isPaidUp = Math.abs(balance) <= 0.005;
+        const isOverpaid = balance < -0.005;
         const isExpanded = expandedPayers.has(payer.id);
 
         return (
@@ -81,71 +83,48 @@ export function HouseholdBalance({
             className="rounded-xl border overflow-hidden"
             style={{ borderColor: payer.color + "30" }}
           >
-            {/* Payer header — 2-row layout works on mobile and desktop */}
-            <div
-              className="px-4 py-3 space-y-2"
-              style={{ backgroundColor: payer.color + "08" }}
-            >
-              {/* Row 1: avatar + name + balance */}
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
-                  style={{ backgroundColor: payer.color }}
-                >
-                  {payer.name.slice(0, 2).toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <p className="font-semibold text-sm text-slate-800 truncate">{payer.name}</p>
-                    {payer.is_owner && (
-                      <span className="shrink-0 text-xs px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500 font-medium">you</span>
-                    )}
+            <div className="px-3 py-1" style={{ backgroundColor: payer.color + "08" }}>
+              <SummaryRow
+                icon={
+                  <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold"
+                    style={{ backgroundColor: payer.color }}
+                  >
+                    {payer.name.slice(0, 2).toUpperCase()}
                   </div>
-                  {isPaidUp ? (
-                    <div className="flex items-center gap-1 text-emerald-600 font-semibold text-sm shrink-0">
+                }
+                label={payer.name}
+                badge={payer.is_owner ? "you" : undefined}
+                sublabel={`Owed ${fmt.format(owedPerPayer)} · Paid ${fmt.format(totalPaid)}`}
+                value={
+                  isPaidUp ? (
+                    <span className="flex items-center gap-1 text-emerald-600">
                       <CheckCircle2 className="h-4 w-4" />
-                      <span>Paid up</span>
-                    </div>
+                      Paid up
+                    </span>
+                  ) : isOverpaid ? (
+                    <span className="text-emerald-600">{fmt.format(Math.abs(balance))}</span>
                   ) : (
-                    <div className="text-right shrink-0">
-                      <p className="font-bold text-sm tabular-nums" style={{ color: payer.color }}>
-                        {fmt.format(balance)}
-                      </p>
-                      <p className="text-xs text-slate-400 leading-none">due</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Row 2: stats + actions */}
-              <div className="flex items-center justify-between pl-[52px]">
-                <p className="text-xs text-slate-500">
-                  Owed {fmt.format(owedPerPayer)} · Paid {fmt.format(totalPaid)}
-                </p>
-                <div className="flex items-center gap-1">
-                  {onRecordPayment && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 text-xs gap-1"
-                      onClick={() => onRecordPayment(payer.id)}
-                    >
-                      <Plus className="h-3 w-3" />
-                      Pay
-                    </Button>
-                  )}
-                  {payerPayments.length > 0 && (
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8 text-slate-400 hover:text-slate-600"
-                      onClick={() => toggleExpand(payer.id)}
-                    >
-                      {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                    </Button>
-                  )}
-                </div>
-              </div>
+                    <span style={{ color: payer.color }}>{fmt.format(balance)}</span>
+                  )
+                }
+                subvalue={isPaidUp ? undefined : isOverpaid ? "credit" : "due"}
+                actions={
+                  <>
+                    {onRecordPayment && (
+                      <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={() => onRecordPayment(payer.id)}>
+                        <Plus className="h-3 w-3" />
+                        Pay
+                      </Button>
+                    )}
+                    {payerPayments.length > 0 && (
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-400 hover:text-slate-600" onClick={() => toggleExpand(payer.id)}>
+                        {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      </Button>
+                    )}
+                  </>
+                }
+              />
             </div>
 
             {/* Payment history */}
